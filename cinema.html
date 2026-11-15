@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>우리반 영화관</title>
+<style>
+  :root { --pink:#ff8fab; --ink:#2b2440; --paper:#fffaf2; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#2b2440; font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; color:var(--ink); }
+  #c { position:fixed; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+  button { font:inherit; border:0; border-radius:14px; padding:10px 16px; min-height:44px; background:#fff; color:var(--ink); font-weight:700; cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,.18); }
+  button.main { background:var(--pink); color:#fff; }
+  button:active { transform:translateY(2px); box-shadow:none; }
+  input { font:inherit; border:2px solid #e6dccb; border-radius:12px; padding:10px 12px; min-height:44px; }
+  #top { position:fixed; top:max(10px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); background:rgba(255,255,255,.92); border-radius:99px; padding:8px 16px; font-size:14px; font-weight:700; white-space:nowrap; max-width:calc(100% - 24px); overflow:hidden; text-overflow:ellipsis; }
+  #bottom { position:fixed; left:50%; bottom:max(12px,env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; gap:8px; width:min(560px,calc(100% - 24px)); }
+  #bottom input { flex:1; min-width:0; }
+  #pamBtn { position:fixed; left:0; top:38%; border-radius:0 14px 14px 0; writing-mode:vertical-rl; padding:14px 10px; background:#6c5ce7; color:#fff; display:none; }
+  #pam { position:fixed; left:12px; top:12%; bottom:110px; width:min(320px,calc(100% - 24px)); background:var(--paper); border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.35); padding:18px; overflow:auto; transform:translateX(-120%); transition:transform .3s; }
+  #pam.on { transform:none; }
+  #pam h2 { margin:0 0 2px; font-size:20px; } #pam .sub { color:#8a7f70; font-size:13px; margin-bottom:12px; }
+  #pam ol { padding-left:0; list-style:none; margin:0; }
+  #pam li { padding:10px 12px; border-radius:12px; margin-bottom:6px; background:#fff; border:1.5px solid #efe6d6; }
+  #pam li.now { border-color:var(--pink); background:#fff0f4; }
+  #pam li b { display:block; } #pam li span { font-size:13px; color:#776b5c; }
+  .overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(20,16,32,.6); padding:16px; z-index:20; }
+  .card { background:var(--paper); border-radius:22px; padding:22px; width:min(420px,100%); text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.4); }
+  .card h1 { margin:0 0 6px; font-size:26px; } .card p { margin:6px 0 14px; color:#6f6455; }
+  .menu { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; margin:12px 0; }
+  .menu button { font-size:16px; padding:12px 6px; }
+  .menu button.pick { background:#ffe3ea; outline:3px solid var(--pink); }
+  .ticket { border:2px dashed #c9b99d; border-radius:14px; padding:14px; margin:10px 0; background:#fff; text-align:left; }
+  .ticket b { font-size:18px; }
+  #toast { position:fixed; top:64px; left:50%; transform:translate(-50%,-20px); opacity:0; transition:.3s; background:rgba(30,30,40,.9); color:#fff; padding:10px 16px; border-radius:12px; font-weight:700; pointer-events:none; z-index:30; text-align:center; max-width:90%; }
+  #toast.on { opacity:1; transform:translate(-50%,0); }
+  #c { z-index:1; }
+  #media { position:fixed; display:none; background:#000; z-index:5; }
+  #media.under { z-index:0; } /* 재생 중엔 3D 화면 뒤로: 앞사람 뒷머리가 영상 위에 보여요 */
+  #media iframe, #media #ytbox { width:100%; height:100%; border:0; display:block; }
+  #caption { position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,.6); color:#fff; font-size:13px; padding:4px 10px; border-radius:8px; pointer-events:none; }
+  #hint { position:absolute; inset:0; display:none; align-items:center; justify-content:center; color:#fff; font-weight:700; pointer-events:none; text-shadow:0 2px 6px #000; font-size:18px; }
+  #standBtn { display:none; }
+  #actBtn, #snapBtn { position:fixed; left:50%; bottom:calc(max(12px,env(safe-area-inset-bottom)) + 62px); transform:translateX(-50%); z-index:12; font-size:18px; padding:12px 22px; box-shadow:0 6px 20px rgba(0,0,0,.35); }
+  #snapBtn { background:#ff8fab; color:#fff; }
+  #photo { flex-direction:column; gap:12px; z-index:25; }
+  #photo img { max-width:min(92vw,1100px); max-height:66vh; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  #photo .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  #count { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; font-size:120px; font-weight:900; color:#fff; text-shadow:0 4px 20px rgba(0,0,0,.5); pointer-events:none; z-index:15; }
+  #flash { position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; transition:opacity .5s; z-index:16; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">준비 중…</div>
+<div style="position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;display:flex;gap:6px"><a id="toHome"><button>🏠 입장관</button></a><a id="toGallery"><button>🖼 미술관</button></a></div>
+<button id="pamBtn">📖 팜플렛</button>
+<div id="pam"><h2 id="pamTitle">오늘의 상영</h2><div class="sub" id="pamSub"></div><ol id="pamList"></ol></div>
+<div id="media"><div id="ytbox"></div><iframe id="ifr" class="hide" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe><div id="hint">▶ 화면을 한 번 눌러 주세요</div><div id="caption"></div></div>
+<div id="bottom" class="hide">
+  <button id="clapBtn" title="박수">👏</button>
+  <button id="eatBtn" class="hide">😋 먹기</button>
+  <button id="groupBtn" title="입장한 사람 모두 단체사진">📸 단체사진</button>
+  <button id="standBtn">일어나기</button>
+</div>
+<button id="actBtn" class="main hide"></button>
+<button id="snapBtn" class="hide">📸 사진 찍기</button>
+<div id="count" class="hide"></div><div id="flash"></div>
+<div id="photo" class="overlay hide"><img alt="사진"><div class="row"><a id="saveA" download><button class="main">💾 저장하기</button></a><button id="shareBtn" class="hide">공유하기</button><button id="photoClose">닫기</button></div><p style="color:#fff;font-size:13px;margin:0">아이패드: 사진을 길게 누르면 '사진 앱에 저장'도 돼요</p></div>
+<div id="toast"></div>
+<div id="modal" class="overlay hide"><div class="card" id="modalCard"></div></div>
+<div id="enter" class="overlay">
+  <div class="card">
+    <h1>🎬 우리반 영화관</h1>
+    <p>이름을 적고 들어오세요.<br>캐릭터는 들어올 때 무작위로 정해져요.</p>
+    <input id="nameIn" maxlength="10" placeholder="내 이름" style="width:100%;text-align:center;font-size:18px">
+    <div style="height:12px"></div>
+    <div style="height:12px"></div>
+    <button class="main" id="enterBtn" style="width:100%;font-size:18px">입장하기</button>
+    <p id="enterNote" style="font-size:12px;margin:12px 0 0"></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="common.js"></script>
+<script src="world.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+$('toGallery').href = 'gallery.html' + location.search; $('toHome').href = './' + location.search;
+const cinemaName = () => { let n = ''; try { n = settings.cinema_name || ''; } catch {} return n.trim() || '우리반 영화관'; }; // settings 가 아직 없을 때(처음 그릴 때)도 괜찮게
+function applyCinemaName() { document.title = cinemaName(); document.querySelector('#enter h1').textContent = '🎬 ' + cinemaName(); drawNumSign(); if (!me) $('enterNote').textContent = settings.open_cinema === 'off' ? '🔒 오픈 준비 중이에요. 선생님이 열면 들어올 수 있어요.' : (ONLINE ? '' : '혼자 테스트 모드 · ') + '방: ' + ROOM; }
+DB.settings().then(v => { settings = { ...settings, ...v }; applyCinemaName(); }).catch(() => {}); // 들어오기 전에도 이름이 보이게
+$('enterNote').textContent = (ONLINE ? '' : '혼자 테스트 모드 · ') + '방: ' + ROOM;
+try { $('nameIn').value = localStorage.getItem('oname') || ''; } catch {}
+
+// ── 공간 만들기 ──
+scene.background = new THREE.Color(0x2b2440);
+const floors = [];
+function floor(x1, z1, x2, z2, color) { const m = block(x2 - x1, 0.2, z2 - z1, color, (x1 + x2) / 2, -0.1, (z1 + z2) / 2); floors.push(m); return m; }
+function wall(x1, z1, x2, z2, h, color, opacity = 0.55) {
+  const m = new THREE.Mesh(box(Math.abs(x2 - x1) || 0.3, h, Math.abs(z2 - z1) || 0.3), new THREE.MeshLambertMaterial({ color, transparent: true, opacity, depthWrite: false }));
+  m.position.set((x1 + x2) / 2, h / 2, (z1 + z2) / 2); scene.add(m); return m;
+}
+function sign(text, w, h, x, y, z, ry = 0, bg = '#2b2440', fg = '#ffd166') {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
+    map: canvasTex(w * 100, h * 100, (g, W, H) => { g.fillStyle = bg; g.fillRect(0, 0, W, H); g.fillStyle = fg; g.font = `bold ${H * 0.55}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, W / 2, H / 2, W - 20); }),
+  }));
+  m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); return m;
+}
+// 로비 — 참고: 'NOW SHOWING' 간판 부스, 극장 복도(번호 간판·나무 문·좌석 안내판), 'TICKET BOX & POPCORN ZONE' 카운터
+function neon(text, w, h, x, y, z, color, ry = 0, font = 'bold') { // 빛나는 글자 간판 (바탕은 투명)
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false,
+    map: canvasTex(Math.round(w * 110), Math.round(h * 110), (g, W, H) => {
+      g.font = `${font} ${H * 0.62}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.shadowColor = color; g.shadowBlur = H * 0.25; g.fillStyle = color; g.fillText(text, W / 2, H / 2, W - 10);
+      g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.75)'; g.fillText(text, W / 2, H / 2, W - 10);
+    }) }));
+  m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); return m;
+}
+const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff1c1 });
+function bulbs(x1, x2, y, z, n) { for (let i = 0; i < n; i++) { const b = new THREE.Mesh(box(0.14, 0.14, 0.08), bulbMat); b.position.set(x1 + (x2 - x1) * i / (n - 1), y, z); scene.add(b); } }
+const glow = c => new THREE.MeshBasicMaterial({ color: c });
+
+// 바닥: 밝은 회색 큰 타일 + 줄 서는 주황색 선
+const lobbyFloor = floor(-12, 0, 12, 14, 0xd6d2cb);
+lobbyFloor.material = new THREE.MeshLambertMaterial({ map: canvasTex(1200, 700, (g, W, H) => {
+  g.fillStyle = '#d9d5ce'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 12; i++) for (let j = 0; j < 7; j++) { g.fillStyle = `rgba(${(i * 7 + j * 13) % 3 ? '255,255,255' : '120,110,100'},.06)`; g.fillRect(i * 100, j * 100, 100, 100); }
+  g.strokeStyle = 'rgba(90,85,80,.35)'; g.lineWidth = 2;
+  for (let i = 0; i <= 12; i++) { g.beginPath(); g.moveTo(i * 100, 0); g.lineTo(i * 100, H); g.stroke(); }
+  for (let j = 0; j <= 7; j++) { g.beginPath(); g.moveTo(0, j * 100); g.lineTo(W, j * 100); g.stroke(); }
+  g.fillStyle = '#ff7a3d'; // 줄 서는 자리 표시 (매표·매점 앞)
+  for (const cx of [-8, -4]) for (let k = 0; k < 4; k++) g.fillRect((cx + 12) * 50 - 30, (3.4 + k * 1.1) * 50, 60, 6);
+}) });
+block(2.6, 0.04, 13, 0x8e1b2c, 0, 0.02, 7.5); // 레드카펫
+wall(-12, 0, -12, 14, 5, 0x2b2b31, 0.75); // 왼쪽 벽: 짙은 회색
+wall(12, 0, 12, 14, 5, 0x9a4b38, 0.6);  // 오른쪽 벽: 벽돌
+wall(-12, 0, -1.6, 0, 6, 0x1f2433, 0.9); wall(1.6, 0, 12, 0, 6, 0x6f8090, 0.9); // 뒷벽: 카운터 쪽 남색 / 문 쪽 청회색(부스)
+block(3.2, 2.4, 0.3, 0x1f2433, 0, 4.8, 0); // 문 위
+
+// 상영관 입구: 'NOW SHOWING' 흰 간판 + 전구
+block(9.4, 2.2, 0.5, 0xb8c4cf, 3.4, 5.1, 0.3);
+const marquee = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.9), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+marquee.position.set(3.4, 5.1, 0.56); scene.add(marquee);
+function drawMarquee(title) {
+  marquee.material.map = canvasTex(1200, 254, (g, W, H) => {
+    g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(0,0,0,.08)'; for (let y = 8; y < H; y += 46) g.fillRect(0, y, W, 2); // 글자판 줄
+    g.fillStyle = '#141412'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `900 92px ${FONT}`; g.fillText('NOW SHOWING', W / 2, 92, W - 60);
+    g.font = `bold 44px ${FONT}`; g.fillText(title, W / 2, 196, W - 80);
+  });
+  marquee.material.needsUpdate = true;
+}
+drawMarquee('우리반 영화제');
+bulbs(-1.2, 8, 3.92, 0.5, 22);
+// 나무 문 (관리자가 열기 전에는 닫혀 있어요)
+const WOOD = 0xa8743f;
+const doors = [-1, 1].map(s => { const g = new THREE.Group(); g.position.set(s * 1.6, 0, 0); scene.add(g); block(1.58, 3.4, 0.14, WOOD, -s * 0.79, 1.7, 0, g); block(0.06, 1.4, 0.08, 0x222222, -s * 1.4, 1.6, 0.1, g); g.userData.s = s; return g; });
+block(0.3, 3.6, 0.4, 0x6b4a2b, -1.75, 1.8, 0.05); block(0.3, 3.6, 0.4, 0x6b4a2b, 1.75, 1.8, 0.05);
+// 문 옆: 번호 전구 간판, 좌석 안내판, 벽 조명, 검표대
+const numSign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.1), new THREE.MeshBasicMaterial());
+function drawNumSign() { numSign.material.map = canvasTex(480, 220, (g, W, H) => {
+  g.fillStyle = '#111'; g.fillRect(0, 0, W, H); g.fillStyle = '#fff'; g.textBaseline = 'middle';
+  g.font = `900 120px ${FONT}`; g.fillText('01', 22, H / 2 + 6);
+  g.textAlign = 'right'; g.font = `bold 34px ${FONT}`; g.fillText(cinemaName(), W - 20, 62, 250); g.fillText('CINEMA', W - 20, 110); g.fillText('No. 01', W - 20, 158);
+  g.fillStyle = '#ccc'; for (const y of [84, 132, 180]) g.fillRect(212, y, W - 232, 2);
+  g.fillStyle = '#fff6d0'; for (let i = 0; i < 12; i++) { g.beginPath(); g.arc(20 + i * 40, 12, 7, 0, 7); g.fill(); g.beginPath(); g.arc(20 + i * 40, H - 12, 7, 0, 7); g.fill(); }
+}); numSign.material.needsUpdate = true; }
+drawNumSign(); numSign.position.set(3.4, 3.1, 0.2); scene.add(numSign);
+sign('CINEMA 01', 1.8, 0.45, 6.2, 2.75, 0.18, 0, '#141414', '#ffffff');
+const seatMap = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.9), new THREE.MeshBasicMaterial({ map: canvasTex(180, 190, (g, W, H) => {
+  g.fillStyle = '#141414'; g.fillRect(0, 0, W, H); g.fillStyle = '#888'; g.fillRect(30, 18, 120, 3); g.font = `10px ${FONT}`; g.textAlign = 'center'; g.fillText('SCREEN', 90, 32);
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) { g.fillStyle = r === 4 ? '#e05561' : '#ddd'; g.fillRect(36 + c * 19, 48 + r * 26, 13, 13); }
+}) }));
+seatMap.position.set(6.2, 1.55, 0.18); scene.add(seatMap);
+block(1.1, 0.12, 0.3, 0x8a6a3a, 6.2, 3.25, 0.35); block(1, 0.08, 0.2, 0xfff1c1, 6.2, 3.17, 0.42).material = glow(0xfff1c1); // 그림 조명
+block(0.9, 1.15, 0.7, WOOD, 2.9, 0.58, 2.2); block(1, 0.08, 0.8, 0xc49a62, 2.9, 1.2, 2.2); // 검표대
+sign('CINEMA', 0.7, 0.32, 2.9, 0.75, 2.56, 0, '#ffffff', '#c0392b');
+neon('CINEMA', 3.2, 0.9, 9.9, 4.3, 0.2, '#5aa9ff'); // 파란 네온
+// 오른쪽 벽 포스터
+// 왼쪽 벽: 큰 포스터 (관리자 페이지에서 그림을 올리면 바뀌어요). 누르면 친구랑 셀카
+block(0.08, 5.0, 3.8, 0xc9a227, -11.82, 2.65, 10.1);
+const posterL = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 4.7), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+posterL.position.set(-11.74, 2.65, 10.1); posterL.rotation.y = Math.PI / 2; posterL.userData.tap = 'selfie'; scene.add(posterL);
+// 오른쪽: 벽과 바닥이 이어진 포토존 (파란 바탕 + 노란 조명 + 분홍 동그라미) + '오늘 상영!' 포스터
+const PZ = { x1: 9.0, x2: 11.7, z1: 6.2, z2: 11.8 };
+const pzWall = new THREE.Mesh(new THREE.PlaneGeometry(6, 4.8), new THREE.MeshBasicMaterial({ map: canvasTex(600, 480, (g, W, H) => {
+  g.fillStyle = '#2f55c8'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#f1d27a'; g.beginPath(); g.moveTo(40, 0); g.lineTo(170, 0); g.lineTo(330, H); g.lineTo(60, H); g.fill();
+  const sh = [['#f4a6b8', 'zig', 420, 60], ['#f1d27a', 'arc', 540, 40], ['#111', 'dot', 470, 26], ['#d8dbe8', 'bar', 520, 150], ['#f4a6b8', 'ring', 540, 330], ['#111', 'dot', 400, 420], ['#d8dbe8', 'bar', 380, 300], ['#f1d27a', 'arc', 30, 420], ['#f4a6b8', 'ring', 20, 230]];
+  for (const [c, t, x, y] of sh) {
+    g.fillStyle = g.strokeStyle = c; g.lineWidth = 12;
+    if (t === 'dot') { g.beginPath(); g.arc(x, y, 12, 0, 7); g.fill(); }
+    if (t === 'ring') { g.beginPath(); g.arc(x, y, 26, 0, 7); g.stroke(); }
+    if (t === 'arc') { g.beginPath(); g.arc(x, y, 34, Math.PI, 0); g.stroke(); }
+    if (t === 'bar') { g.save(); g.translate(x, y); g.rotate(-0.4); g.fillRect(-36, -5, 72, 10); g.restore(); }
+    if (t === 'zig') { g.beginPath(); g.moveTo(x - 50, y); for (let i = 0; i < 5; i++) g.lineTo(x - 50 + (i + 1) * 20, y + (i % 2 ? 0 : -20)); g.stroke(); }
+  }
+  g.fillStyle = '#fff'; g.font = `bold 40px ${FONT}`; g.textAlign = 'center'; g.fillText('📸 PHOTO ZONE', 450, 470);
+}) }));
+pzWall.position.set(11.84, 2.4, 9); pzWall.rotation.y = -Math.PI / 2; scene.add(pzWall);
+const pzFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 6), new THREE.MeshBasicMaterial({ map: canvasTex(290, 600, (g, W, H) => { // 벽에서 이어지는 바닥 (왼쪽=통로 쪽, 오른쪽=벽 쪽)
+  g.fillStyle = '#2f55c8'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#f1d27a'; g.beginPath(); g.moveTo(W, 60); g.lineTo(W, 330); g.lineTo(0, 430); g.lineTo(0, 90); g.fill();
+  g.fillStyle = '#f4a6b8'; g.beginPath(); g.ellipse(140, 230, 105, 150, 0, 0, 7); g.fill();
+}) }));
+pzFloor.rotation.x = -Math.PI / 2; pzFloor.position.set(10.45, 0.03, 9); scene.add(pzFloor);
+const posterR = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 2.7), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+posterR.position.set(11.77, 2.6, 10.6); posterR.rotation.y = -Math.PI / 2; scene.add(posterR);
+block(0.04, 2.9, 2.1, 0xffffff, 11.81, 2.6, 10.6);
+
+// 매표소 + 매점 (붙어 있는 카운터 하나)
+const COUNTERS = { ticket: { x: -8, label: '🎟 매표소' }, snack: { x: -4, label: '🍿 매점' } };
+const counterMeshes = [];
+for (const [key, c] of Object.entries(COUNTERS)) {
+  block(3.96, 1.1, 1, 0x1f3a5c, c.x, 0.55, 2);
+  const hitBox = new THREE.Mesh(box(3.96, 4.2, 2.6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  hitBox.position.set(c.x, 2.1, 1.4); hitBox.userData.counter = key; scene.add(hitBox); counterMeshes.push(hitBox);
+  for (let k = -1.5; k <= 1.5; k += 1) block(0.06, 0.8, 0.04, 0x2f527a, c.x + k * 1.2 * 0.85, 0.55, 2.52); // 판넬 줄
+  block(4, 0.12, 1.2, 0xece6db, c.x, 1.16, 2); // 대리석 위판
+  sign(c.label, 1.8, 0.42, c.x, 1.45, 2.62, 0, '#ffffff', '#1f2433');
+  const clerk = makeAvatar('clerk-' + key, key === 'ticket' ? 1 : 2, key === 'ticket' ? '매표소 직원' : '매점 직원');
+  place(clerk, c.x, 1); clerk.root.rotation.y = 0;
+  for (let z = 3.2; z <= 8; z += 1.6) for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 6), mat(0x9a9a9a)); p.position.set(c.x + s * 0.9, 0.5, z); scene.add(p); }
+}
+block(0.8, 0.5, 0.5, 0x333333, -8.9, 1.47, 1.8); block(0.8, 0.5, 0.5, 0x333333, -7.1, 1.47, 1.8); // 매표 모니터
+block(0.9, 1.3, 0.8, 0xd62828, -2.7, 1.9, 1.9); block(0.7, 0.8, 0.05, 0xfff3b0, -2.7, 2.0, 2.31).material = glow(0xfff3b0); // 팝콘 기계
+block(0.7, 0.9, 0.6, 0xf4c430, -5.2, 1.7, 1.8); // 사탕 진열장
+neon('TICKET BOX & POPCORN ZONE', 9.2, 0.9, -6.6, 5.15, 0.12, '#ff5a36');
+const MENU = [['#1d3557', '🎟 오늘의 상영', '#fff'], ['#e63946', '🍿 팝콘 콤보', '#fff'], ['#f4a261', '🌭 핫도그 · 나초', '#1d1d1d'], ['#2a9d8f', '🥤 콜라 · ☕ 커피', '#fff'], ['#ffd166', '⭐ 우리반 스페셜', '#1d1d1d']];
+MENU.forEach(([bg, txt, fg], i) => {
+  const x = -10.4 + i * 1.95;
+  block(1.85, 1.05, 0.08, 0x111111, x, 3.75, 0.1);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.72, 0.92), new THREE.MeshBasicMaterial({ map: canvasTex(344, 184, (g, W, H) => {
+    g.fillStyle = bg; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, H - 46, W, 46);
+    g.fillStyle = fg; g.font = `bold 34px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, W / 2, 70, W - 20);
+    g.font = `20px ${FONT}`; g.fillText(i === 0 ? '표 받고 팜플렛도 챙겨요' : '맛있게 먹으며 관람해요', W / 2, H - 23, W - 20);
+  }) }));
+  scr.position.set(x, 3.75, 0.15); scene.add(scr);
+});
+// 상영관 입구 테이블: 두 개, 한 테이블에 10명씩 앉아 먹을 수 있어요
+const STOOLS = [], tableMeshes = [];
+for (const tx of [3.9, 6.6]) {
+  const top = block(1.0, 0.1, 5.8, 0x8a5a2b, tx, 1.4, 8); tableMeshes.push(top);
+  for (const dz of [-2.5, 2.5]) block(0.1, 1.4, 0.1, 0x222222, tx, 0.7, 8 + dz);
+  for (const sd of [-1, 1]) for (let k = 0; k < 5; k++) {
+    const sx = tx + sd * 0.85, sz = 5.8 + k * 1.1;
+    const st = block(0.5, 0.1, 0.5, 0x6b4a2b, sx, 0.95, sz); block(0.06, 0.9, 0.06, 0x222222, sx, 0.47, sz);
+    st.userData.stool = STOOLS.length; tableMeshes.push(st); STOOLS.push({ x: sx, z: sz, rot: sd > 0 ? -Math.PI / 2 : Math.PI / 2 });
+  }
+}
+for (const [x, z] of [[-11, 13]]) { block(0.8, 0.8, 0.8, 0x444444, x, 0.4, z); block(1, 1.2, 1, 0x52b788, x, 1.4, z); }
+
+// 상영관
+floor(-12, -22, 12, 0, 0x26242c);
+wall(-12, -22, -12, 0, 8, 0x1c1c22, 0.85); wall(12, -22, 12, 0, 8, 0x1c1c22, 0.85); wall(-12, -22, 12, -22, 8, 0x1a1226, 0.95);
+block(17, 7.6, 0.3, 0x111111, 0, 4.6, -21.7);
+const SCREEN = { y: 4.6, z: -21.5, w: 16, h: 7 };
+const screenCanvas = document.createElement('canvas'); screenCanvas.width = 1024; screenCanvas.height = 448;
+const screenTex = new THREE.CanvasTexture(screenCanvas);
+const screenMat = new THREE.MeshBasicMaterial({ map: screenTex });
+const holeMat = new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0, blending: THREE.NoBlending }); // 스크린 자리를 투명하게 뚫어요
+const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN.w, SCREEN.h), screenMat);
+screenMesh.position.set(0, SCREEN.y, SCREEN.z); scene.add(screenMesh);
+const SEATS = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
+  const x = -6.25 + c * 2.5, z = -5 - r * 2.6, i = SEATS.length;
+  SEATS.push({ x, z });
+  for (const m of [block(1.6, 0.45, 1.1, 0xb23a48, x, 0.25, z), block(1.6, 1.4, 0.3, 0x9a2f3d, x, 0.95, z + 0.55)]) m.userData.seat = i;
+  for (const s of [-1, 1]) block(0.15, 0.75, 1.1, 0x5c1d26, x + s * 0.85, 0.37, z);
+}
+for (let z = -3; z > -19; z -= 2.6) for (const x of [-11.5, 11.5]) block(0.2, 0.08, 0.2, 0xffd166, x, 0.05, z).material = new THREE.MeshBasicMaterial({ color: 0xffd166 }); // 바닥 조명
+const seatMeshes = scene.children.filter(m => m.userData.seat != null);
+
+// ── 길 찾기(단순): 로비↔상영관은 문을 지나고, 좌석은 옆 통로로 들어가요 ──
+const aisleX = x => (x < 0 ? -9.6 : 9.6);
+const inSeatArea = q => q.z < -3.6 && q.z > -16.8 && Math.abs(q.x) < 8.4;
+const rowFront = z => { let best = -6.2; for (let r = 0; r < 5; r++) { const f = -5 - r * 2.6 - 1.2; if (Math.abs(f - z) < Math.abs(best - z)) best = f; } return best; };
+function route(from, to) {
+  const pts = []; let p = { x: from.x, z: from.z };
+  const push = q => { pts.push(q); p = q; };
+  if (inSeatArea(p)) { const f = rowFront(p.z); push({ x: p.x, z: f }); push({ x: aisleX(p.x), z: f }); push({ x: aisleX(p.x), z: -2.5 }); }
+  if ((p.z > 0) !== (to.z > 0)) { const s = p.z > 0 ? 1 : -1; push({ x: 0, z: s * 1.2 }); push({ x: 0, z: -s * 1.2 }); }
+  if (to.seat != null && to.seat >= 0) {
+    const a = aisleX(to.x), f = to.z - 1.2;
+    push({ x: a, z: p.z < -16.8 ? p.z : -2.5 }); push({ x: a, z: f }); push({ x: to.x, z: f });
+  }
+  pts.push({ x: to.x, z: to.z });
+  return pts;
+}
+const seatPose = i => ({ x: SEATS[i].x, z: SEATS[i].z, rot: Math.PI, y: -0.38 });
+const stoolPose = i => ({ x: STOOLS[i].x, z: STOOLS[i].z, rot: STOOLS[i].rot, y: 0.1 });
+const poseFor = p => p.seat >= 0 ? seatPose(p.seat) : p.stool >= 0 ? stoolPose(p.stool) : null;
+FOOD_SCALE = 3; // 팝콘·콜라 같은 먹을 것을 크게
+function avatarFor(id, ch, name, teacher) {
+  return teacher ? makeAvatar(id, 0, name, { ...TEACHER_LOOK, tag: labelSprite('👩‍🏫 ' + name, { bg: 'rgba(176,141,87,.95)' }) }) : makeAvatar(id, ch, name);
+}
+const heldFor = p => p.teacher ? ['folder', 'coffee'] // 강사: 옆구리에 출석부, 한 손에 커피
+  : p.snacks?.length ? [...p.snacks, ...(p.ticket && p.snacks.length < 2 ? ['pamphlet'] : [])] : p.ticket ? ['pamphlet'] : [];
+
+// ── 나와 다른 사람들 ──
+const ME = myId();
+let me = null, my = null, net = null, people = [], films = [], settings = {}, phases = [], show = { idx: -1, at: 0 };
+function track() { net && net.track({ ...my }); }
+function goTo(target, after) {
+  my.x = target.x; my.z = target.z; my.seat = target.seat ?? -1; my.stool = target.stool ?? -1;
+  walk(me, route(me.root.position, target), poseFor(my), after);
+  track();
+  $('standBtn').style.display = my.seat >= 0 ? 'block' : 'none';
+}
+const applied = new Map();
+function onPeople(list) {
+  people = list;
+  if (my && !onPeople.checked) { // 30명 넘으면 늦게 온 사람은 못 들어와요
+    onPeople.checked = true;
+    const order = list.filter(p => p.joined).sort((a, b) => a.joined - b.joined || (a.id < b.id ? -1 : 1));
+    if (my.teacher && order.some(p => p.teacher && p.id !== ME && order.indexOf(p) < order.findIndex(q => q.id === ME))) { net.leave(); alert('강사는 이미 입장해 있어요. 강사는 한 명만 들어올 수 있어요.'); location.reload(); return; }
+    if (order.findIndex(p => p.id === ME) >= MAX_PEOPLE) { net.leave(); alert(`자리가 꽉 찼어요 (${MAX_PEOPLE}명). 조금 뒤에 다시 들어와 주세요.`); location.reload(); return; }
+  }
+  const seen = new Set([ME]);
+  for (const p of list) {
+    if (p.id === ME || !p.name) continue; seen.add(p.id);
+    let av = avatars.get(p.id);
+    if (!av) { av = avatarFor(p.id, p.ch || 0, p.name, p.teacher); place(av, p.x, p.z); const ps = poseFor(p); if (ps) { av.sit = ps; av.root.rotation.y = ps.rot; } }
+    const key = [p.x, p.z, p.seat, p.stool].join();
+    if (applied.get(p.id) !== key) { applied.set(p.id, key); if (applied.has(p.id + '#')) walk(av, route(av.root.position, { x: p.x, z: p.z, seat: p.seat }), poseFor(p)); }
+    applied.set(p.id + '#', 1);
+    setHeld(av, heldFor(p));
+  }
+  for (const id of [...avatars.keys()]) if (!seen.has(id) && !id.startsWith('clerk') && !id.startsWith('gp-')) { removeAvatar(id); applied.delete(id); applied.delete(id + '#'); }
+  if (my) updateQueue();
+  updateTop();
+}
+function onEvent(e) {
+  if (e.t === 'group') return groupPhoto(e.seed);
+  if (e.t === 'photo') return zoneSnap(e.zone, false);
+  const av = avatars.get(e.id); if (!av) return;
+  if (e.t === 'eat') { av.eatT = 1.6; say(av, '냠냠 😋', 2); }
+  if (e.t === 'chat') say(av, e.text);
+  if (e.t === 'clap') { say(av, '👏👏👏', 2.5); av.clapT = 1.2; clapSound(); }
+}
+
+// ── 줄 서기 ──
+let menuOpen = false;
+function queueSpot() {
+  if (!my.q) return null;
+  const line = people.filter(p => p.q && p.q.at === my.q.at).map(p => p.id === ME ? { ...p, q: my.q } : p);
+  if (!line.some(p => p.id === ME)) line.push({ id: ME, q: my.q });
+  line.sort((a, b) => a.q.t - b.q.t || (a.id < b.id ? -1 : 1));
+  const rank = line.findIndex(p => p.id === ME);
+  return { rank, x: COUNTERS[my.q.at].x, z: 3.4 + rank * 1.1 };
+}
+function updateQueue() {
+  const s = queueSpot(); if (!s) return;
+  if (Math.abs(s.x - my.x) > 0.01 || Math.abs(s.z - my.z) > 0.01) goTo({ x: s.x, z: s.z }, () => { me.root.rotation.y = Math.PI; checkFront(); });
+  else checkFront();
+}
+function checkFront() { const s = queueSpot(); if (s && s.rank === 0 && !me.path.length && !menuOpen) openMenu(my.q.at); }
+function joinQueue(at) {
+  if (my.q) return toast('이미 줄을 서 있어요');
+  if (at === 'ticket' && my.ticket) return toast('표는 이미 받았어요 🎟');
+  if (my.seat >= 0) return toast('먼저 일어나 주세요');
+  my.q = { at, t: Show.now() }; updateQueue();
+}
+function leaveQueue() {
+  const at = my.q?.at; my.q = null; menuOpen = false; $('modal').classList.add('hide');
+  if (at) goTo({ x: COUNTERS[at].x + (at === 'ticket' ? -2.8 : 2.8), z: 5.5 });
+}
+function openMenu(at) {
+  menuOpen = true; dingSound();
+  const card = $('modalCard'), title = settings.movie_title || '우리반 영화제';
+  if (at === 'ticket') {
+    card.innerHTML = `<h1>🎟 매표소</h1><p>어서 오세요, ${esc(cinemaName())}입니다.<br>오늘의 영화: <b>${esc(title)}</b></p><button class="main" id="mOk" style="width:100%">표 받기</button><div style="height:8px"></div><button id="mNo" style="width:100%">그냥 나가기</button>`;
+    $('mOk').onclick = () => {
+      my.ticket = true; setHeld(me, heldFor(my)); track();
+      card.innerHTML = `<h1>🎉 표가 나왔어요</h1><div class="ticket"><small>🎬 ${esc(cinemaName())}</small><br><b>${esc(title)}</b><br>관객: ${esc(my.name)}<br>상영관 1 · 자유석 · ${new Date().toLocaleDateString('ko-KR')}</div><p>📖 팜플렛도 받았어요! 왼쪽에서 언제든 펼쳐 보세요.<br>🍿 매점에서 간식도 살 수 있어요.</p><button class="main" id="mNo" style="width:100%">고마워요</button>`;
+      $('pamBtn').style.display = 'block'; $('mNo').onclick = leaveQueue;
+    };
+  } else {
+    const picked = [];
+    card.innerHTML = `<h1>🍿 매점</h1><p>두 개까지 골라요 (손이 두 개라서요)</p><div class="menu">${['popcorn', 'cola', 'coffee', 'hotdog', 'nachos'].map(k => `<button data-k="${k}">${ITEMS[k].emoji} ${ITEMS[k].label}</button>`).join('')}</div><button class="main" id="mOk" style="width:100%">받기</button><div style="height:8px"></div><button id="mNo" style="width:100%">그냥 나가기</button>`;
+    card.querySelectorAll('.menu button').forEach(b => b.onclick = () => {
+      const k = b.dataset.k, i = picked.indexOf(k);
+      if (i >= 0) picked.splice(i, 1); else { if (picked.length >= 2) picked.shift(); picked.push(k); }
+      card.querySelectorAll('.menu button').forEach(x => x.classList.toggle('pick', picked.includes(x.dataset.k)));
+    });
+    $('mOk').onclick = () => { if (!picked.length) return toast('먹을 것을 골라 주세요'); my.snacks = picked.slice(); setHeld(me, heldFor(my)); track(); toast(picked.map(k => ITEMS[k].emoji).join(' ') + ' 맛있게 드세요!'); leaveQueue(); };
+  }
+  $('mNo').onclick = leaveQueue; $('modal').classList.remove('hide');
+  clearTimeout(openMenu.h); openMenu.h = setTimeout(() => menuOpen && leaveQueue(), 45000); // 뒤 사람이 오래 기다리지 않게
+}
+
+// ── 화면 누르기 ──
+function askAct(label, fn) { // 화면 아래에 '앉기' 같은 명령 버튼
+  const b = $('actBtn'); b.textContent = label; b.classList.remove('hide');
+  b.onclick = () => { hideAct(); fn(); }; clearTimeout(askAct.h); askAct.h = setTimeout(hideAct, 7000);
+}
+function hideAct() { $('actBtn').classList.add('hide'); }
+function askQueue(at) { // 매표소·매점 어디를 눌러도: 물어보고 자동으로 줄 서기
+  if (my.q) return toast('이미 줄을 서 있어요');
+  if (at === 'ticket' && my.ticket) return toast('표는 이미 받았어요 🎟');
+  $('modalCard').innerHTML = (at === 'ticket' ? '<h1>🎟 매표소</h1><p>표를 받겠습니까?<br>누르면 자동으로 줄을 서요.</p>' : '<h1>🍿 매점</h1><p>팝콘·콜라 같은 먹을 것을 살까요?<br>표가 없어도 살 수 있어요. 누르면 자동으로 줄을 서요.</p>')
+    + '<button class="main" id="qYes" style="width:100%">네, 줄 설게요</button><div style="height:8px"></div><button id="qNo" style="width:100%">아니요</button>';
+  $('modal').classList.remove('hide');
+  $('qYes').onclick = () => { $('modal').classList.add('hide'); if (my.seat >= 0 || my.stool >= 0) { my.seat = -1; my.stool = -1; } joinQueue(at); };
+  $('qNo').onclick = () => $('modal').classList.add('hide');
+}
+const taken = (key, i) => people.some(p => p.id !== ME && p[key] === i);
+function nearestStool(pt) { let best = -1, d = 1e9; STOOLS.forEach((st, i) => { const e = Math.hypot(st.x - pt.x, st.z - pt.z); if (!taken('stool', i) && e < d) { d = e; best = i; } }); return best; }
+onTap(ray => {
+  if (!me || snapping) return;
+  if (menuOpen) return;
+  hideAct();
+  let hit = ray.intersectObjects(counterMeshes)[0];
+  if (hit) return askQueue(hit.object.userData.counter);
+  hit = ray.intersectObject(posterL)[0];
+  if (hit) return askAct('🤳 포스터 앞에서 친구랑 셀카', startSelfie);
+  hit = ray.intersectObjects(tableMeshes)[0];
+  if (hit) {
+    const i = hit.object.userData.stool ?? nearestStool(hit.point);
+    if (i < 0) return toast('테이블 자리가 다 찼어요');
+    if (taken('stool', i)) return toast('다른 사람 자리예요');
+    return askAct('🍿 테이블에 앉기', () => { if (my.q) leaveQueue(); goTo({ x: STOOLS[i].x, z: STOOLS[i].z, stool: i }, () => toast(my.snacks.length ? '😋 아래 [먹기]를 눌러 먹어요' : '🍿 매점에서 먹을 것을 사 와도 좋아요')); });
+  }
+  hit = ray.intersectObjects(seatMeshes)[0];
+  if (hit) {
+    const i = hit.object.userData.seat;
+    if (!doorOpen()) return toast(doorMsg());
+    if (!my.ticket) return toast('🎟 매표소에서 표를 먼저 받아 주세요');
+    if (taken('seat', i)) return toast('다른 사람 자리예요');
+    return askAct('🪑 이 자리에 앉기', () => { if (my.q) leaveQueue(); goTo({ ...SEATS[i], seat: i }, () => toast('자리에 앉았어요 🎬 일어나려면 [일어나기]')); });
+  }
+  hit = ray.intersectObjects(floors)[0];
+  if (!hit) return;
+  let { x, z } = hit.point;
+  if (z < 0 && !doorOpen() && me.root.position.z > 0) return toast(doorMsg());
+  if (z < 0 && !my.ticket) return toast('🎟 매표소에서 표를 먼저 받아 주세요');
+  if (my.q) { my.q = null; menuOpen = false; }
+  x = Math.max(-11.2, Math.min(11.2, x));
+  z = z > 0 ? Math.max(Math.abs(x) < 1.6 ? 0.8 : 2.9, Math.min(13.2, z)) : Math.max(-19.5, Math.min(-0.8, z));
+  goTo({ x, z });
+});
+
+// ── 상영관 문: 관리자가 열거나(상영 시작) 정해 둔 시각이 되면 열려요 ──
+function doorOpen() {
+  if (running()) return true;
+  const v = settings['door_' + ROOM] || '';
+  if (v === 'closed') return false;
+  if (v.startsWith('at:')) return Show.now() >= +v.slice(3);
+  return true;
+}
+function doorMsg() {
+  const v = settings['door_' + ROOM] || '';
+  return v.startsWith('at:') ? `🚪 상영관 문은 ${new Date(+v.slice(3)).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}에 열려요` : '🚪 상영관 문이 아직 닫혀 있어요. 선생님이 곧 열어 줄 거예요';
+}
+setInterval(async () => { if (!me) return; try { settings = { ...settings, ...(await DB.settings()) }; } catch {} }, 6000);
+
+// ── 사진: 포토존(5초), 포스터 셀카(3초) ──
+const ZONES = [
+  { get title() { return cinemaName() + ' 포토존'; }, x1: PZ.x1, x2: PZ.x2, z1: PZ.z1, z2: PZ.z2, count: 5, cam: { pos: new THREE.Vector3(5.2, 2.6, 9), look: new THREE.Vector3(11.9, 1.7, 9) } },
+  { title: '우리반 영화제 셀카', x1: -11.6, x2: -8.6, z1: 8.4, z2: 11.8, count: 3, cam: { pos: new THREE.Vector3(-5.8, 2.7, 10.1), look: new THREE.Vector3(-11.9, 2.4, 10.1) } },
+];
+const zoneAt = p => ZONES.findIndex(z => p.x > z.x1 && p.x < z.x2 && p.z > z.z1 && p.z < z.z2);
+const today = new Date().toLocaleDateString('ko-KR');
+let snapping = false, wantSnap = null, studio = null;
+function countdown(n, done) { const c = $('count'); c.classList.remove('hide'); c.textContent = n; const h = setInterval(() => { n--; if (n <= 0) { clearInterval(h); c.classList.add('hide'); done && done(); } else c.textContent = n; }, 1000); }
+function poseIn(zi) { // 얼굴이 잘 보이게 카메라 쪽을 보고, 포즈는 무작위
+  const c = ZONES[zi].cam.pos;
+  for (const av of avatars.values()) if (!av.id.startsWith('clerk') && !av.id.startsWith('gp-') && zoneAt(av.root.position) === zi && !av.path.length) {
+    av.sit = null; av.pose = POSES[Math.floor(Math.random() * POSES.length)]; av.poseT = 3; av.root.rotation.y = Math.atan2(c.x - av.root.position.x, c.z - av.root.position.z);
+  }
+}
+function zoneSnap(zi, fromMe) {
+  const z = ZONES[zi]; if (!z || snapping || !me) return;
+  if (!fromMe && zoneAt(me.root.position) !== zi) return setTimeout(() => poseIn(zi), z.count * 1000);
+  snapping = true; cam.fixed = z.cam; hideAct();
+  if (!fromMe) toast('📸 사진을 찍어요! 포즈~');
+  countdown(z.count, () => { poseIn(zi); setTimeout(() => { wantSnap = { title: z.title, names: [...avatars.values()].filter(a => !a.id.startsWith('clerk') && !a.id.startsWith('gp-') && zoneAt(a.root.position) === zi).map(a => a.name) }; }, 350); });
+}
+function startSelfie() {
+  if (my.q) leaveQueue();
+  goTo({ x: -9.6, z: 10.1 }, () => { net.send({ t: 'photo', id: ME, zone: 1 }); zoneSnap(1, true); });
+}
+$('snapBtn').onclick = () => { if (snapping) return; net.send({ t: 'photo', id: ME, zone: 0 }); zoneSnap(0, true); };
+
+// ── 단체사진: 들어온 사람 모두 가상의 단상에 모여요 (하던 일은 그대로) ──
+function groupPhoto(seed) {
+  if (snapping || !me) return; snapping = true; hideAct();
+  const all = [{ ...my, id: ME }, ...people.filter(p => p.id !== ME && p.name)];
+  // 단체사진에선 먹을 것이 얼굴을 가리지 않게 원래 크기로
+  studio = groupStudio(all, { make: (id, p) => avatarFor(id, p.ch || 0, p.name, p.teacher), dress: (av, p) => { FOOD_SCALE = 1; setHeld(av, heldFor(p)); FOOD_SCALE = 3; }, backMap: posterL.material.map }, seed);
+  cam.fixed = studio.cam;
+  toast('📸 단체사진! 모두 단상에 모였어요', 3000);
+  countdown(3, () => setTimeout(() => { wantSnap = { title: `${settings.movie_title || '우리반 영화제'} 단체사진`, names: studio.names }; }, 300));
+}
+function endStudio() { if (!studio) return; endGroupStudio(studio); studio = null; }
+$('groupBtn').onclick = () => { if (!me || snapping) return; const seed = (Date.now() * 2654435761) >>> 0; net.send({ t: 'group', id: ME, seed }); groupPhoto(seed); };
+function finishSnap(dataUrl, info) {
+  $('flash').style.opacity = 1; setTimeout(() => $('flash').style.opacity = 0, 80); dingSound();
+  endStudio(); cam.fixed = null; snapping = false; // 사진이 찍히면 모두 하던 일로 돌아가요
+  const img = new Image(); img.onload = () => {
+    const pad = 30, foot = 110, cv = document.createElement('canvas'); cv.width = img.width + pad * 2; cv.height = img.height + pad + foot;
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, pad, pad);
+    g.fillStyle = '#2b2a28'; g.textAlign = 'center'; g.font = `bold 34px ${FONT}`; g.fillText(`${info.title} · ${today}`, cv.width / 2, img.height + pad + 50, cv.width - 40);
+    g.font = `22px ${FONT}`; g.fillStyle = '#7a6f60'; g.fillText(info.names.join(' · '), cv.width / 2, img.height + pad + 88, cv.width - 40);
+    cv.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      $('photo').querySelector('img').src = url; $('saveA').href = url; $('saveA').download = `우리반영화관_${today.replace(/\D+/g, '')}.png`;
+      const file = new File([blob], 'photo.png', { type: 'image/png' });
+      $('shareBtn').classList.toggle('hide', !(navigator.canShare && navigator.canShare({ files: [file] })));
+      $('shareBtn').onclick = () => navigator.share({ files: [file], title: info.title }).catch(() => {});
+      $('photo').classList.remove('hide');
+    });
+  };
+  img.src = dataUrl;
+}
+$('photoClose').onclick = () => $('photo').classList.add('hide');
+$('eatBtn').onclick = () => { if (!me) return; me.eatT = 1.6; say(me, '냠냠 😋', 2); net.send({ t: 'eat', id: ME }); };
+
+// ── 상영 ──
+function current() { return show.idx >= 0 && show.idx < phases.length ? phases[show.idx] : null; }
+const running = () => show.idx >= 0 && show.idx < phases.length - 1;
+let screenKey = '';
+function drawScreen(lines, key) {
+  if (key === screenKey) return; screenKey = key;
+  const g = screenCanvas.getContext('2d'), W = 1024, H = 448;
+  g.fillStyle = '#0d0b14'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.textBaseline = 'middle';
+  lines.forEach(([t, size, color], i) => { g.fillStyle = color || '#fff'; g.font = `bold ${size}px ${FONT}`; g.fillText(t, W / 2, H / 2 + (i - (lines.length - 1) / 2) * size * 1.5, W - 60); });
+  screenTex.needsUpdate = true;
+}
+let startCountdown = 0, lastAdvance = '';
+function tickShow() {
+  if (!me) return;
+  const p = current(), el = (Show.now() - show.at) / 1000, seated = my.seat >= 0 && !me.path.length;
+  const title = settings.movie_title || '우리반 영화제';
+  if (p && p.secs && el >= p.secs && running()) { const k = show.idx + ':' + Math.floor(Date.now() / 3000); if (lastAdvance !== k) { lastAdvance = k; Show.advance(show.idx); } }
+  // 모두 앉으면 5초 뒤 시작
+  const viewers = people.filter(q => q.name), allSeated = viewers.length > 0 && viewers.every(q => (q.id === ME ? my.seat : q.seat) >= 0);
+  if (show.idx < 0 && allSeated && films.length) { if (!startCountdown) startCountdown = Date.now(); if (Date.now() - startCountdown > 5000) { startCountdown = 0; Show.start(); } }
+  else startCountdown = 0;
+  if (show.idx < 0) {
+    const n = viewers.filter(q => (q.id === ME ? my.seat : q.seat) >= 0).length;
+    drawScreen(startCountdown ? [[title, 64, '#ffd166'], [`모두 앉았어요! ${Math.max(1, 5 - Math.floor((Date.now() - startCountdown) / 1000))}초 뒤 시작`, 40]]
+      : [[title, 64, '#ffd166'], [films.length ? `모두 자리에 앉으면 상영이 시작돼요 (${n}/${viewers.length})` : '상영할 작품이 아직 없어요', 34]], 'idle' + n + '/' + viewers.length + (startCountdown ? Math.floor((Date.now() - startCountdown) / 1000) : '') + title);
+  } else if (!p || p.type === 'end') drawScreen([['오늘 상영이 모두 끝났어요', 56, '#ffd166'], ['👏 박수 쳐 주세요!', 40]], 'end');
+  else if (p.type === 'title') drawScreen([[title, 80, '#ffd166'], [`오늘 ${films.length}편 상영`, 34, '#ccc']], 'title' + title);
+  else if (p.type === 'break') drawScreen([['다음 작품', 36, '#ccc'], [`${p.film.student}`, 72, '#ffd166'], [p.film.title ? `「${p.film.title}」` : '', 40], [`${Math.max(0, Math.ceil(p.secs - el))}`, 36, '#ff8fab']], 'b' + show.idx + ':' + Math.ceil(p.secs - el));
+  else drawScreen([[p.type === 'ad' ? '광고' : p.film.student, 56, '#ffd166'], [seated ? '' : '자리에 앉으면 영상이 보여요', 32]], 'm' + show.idx + seated);
+  updateMedia(p, el, seated);
+  renderPamphlet();
+  updateTop();
+}
+function updateTop() {
+  const n = people.filter(q => q.name).length, p = current();
+  const st = show.idx < 0 ? '상영 전' : !running() ? '상영 끝' : p.type === 'film' ? `▶ ${p.film.student}` : p.type === 'break' ? '잠깐 쉬어요' : p.type === 'ad' ? '광고' : '곧 시작';
+  $('top').textContent = `접속 ${n}명 · ${ROOM} · ${st}${ONLINE ? '' : ' · 테스트 모드'}`;
+}
+let pamKey = '';
+function renderPamphlet() {
+  const p = current(), nowId = p && (p.type === 'film' || p.type === 'break') ? p.film.id : null, key = JSON.stringify(films) + nowId + settings.movie_title;
+  if (key === pamKey) return; pamKey = key;
+  $('pamTitle').textContent = settings.movie_title || '우리반 영화제';
+  $('pamSub').textContent = `${cinemaName()} · ${new Date().toLocaleDateString('ko-KR')} · 상영 순서`;
+  $('pamList').innerHTML = films.length ? films.map((f, i) => `<li class="${f.id === nowId ? 'now' : ''}"><b>${i + 1}. ${esc(f.student)}</b><span>${esc(f.title || '제목 없음')}${f.id === nowId ? ' · 지금 상영 중' : ''}</span></li>`).join('') : '<li>아직 상영 목록이 없어요</li>';
+}
+
+// 영상: 앉은 사람 화면에서만, 스크린 위치에 맞춰 띄워요
+let player = null, playerReady = false, mediaIdx = -1, pending = null, mediaStart = 0;
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player('ytbox', { playerVars: { playsinline: 1, rel: 0, modestbranding: 1, controls: 1 }, events: {
+    onReady: () => { playerReady = true; if (pending) { player.loadVideoById(pending); pending = null; } },
+    onStateChange: e => {
+      if (e.data === YT.PlayerState.PLAYING) $('hint').style.display = 'none';
+      if (e.data === YT.PlayerState.ENDED && mediaIdx === show.idx && running()) Show.advance(show.idx);
+    },
+  } });
+};
+function startMedia(p, el) {
+  const url = p.url, yid = youtubeId(url);
+  $('caption').textContent = p.type === 'ad' ? '광고' : `${p.film.student}${p.film.title ? ' · 「' + p.film.title + '」' : ''}`;
+  $('media').style.display = 'block'; mediaStart = Date.now();
+  if (yid) {
+    $('ifr').classList.add('hide'); $('ytbox').style.display = '';
+    const opt = { videoId: yid, startSeconds: Math.max(0, el) };
+    if (playerReady) player.loadVideoById(opt); else pending = opt;
+  } else {
+    $('ytbox').style.display = 'none'; $('ifr').classList.remove('hide');
+    $('ifr').src = instagramEmbed(url) || url; // 릴스는 자동 재생이 안 돼서 한 번 눌러야 해요
+    $('hint').style.display = 'flex';
+  }
+}
+function stopMedia() {
+  setUnder(false);
+  $('media').style.display = 'none'; $('hint').style.display = 'none';
+  if (playerReady) player.stopVideo(); pending = null;
+  if ($('ifr').src && $('ifr').src !== 'about:blank') $('ifr').src = 'about:blank';
+}
+let lastDrift = 0;
+// 유튜브가 재생 중일 때만 영상을 3D 화면 뒤로 보내요. 눌러야 할 때(자동 재생 막힘)와 릴스는 영상이 맨 앞.
+function setUnder(on) { $('media').classList.toggle('under', on); screenMesh.material = on ? holeMat : screenMat; }
+function updateMedia(p, el, seated) {
+  const want = seated && p && (p.type === 'film' || p.type === 'ad') ? show.idx : -1;
+  if (want !== mediaIdx) { stopMedia(); mediaIdx = want; if (want >= 0) startMedia(p, el); }
+  if (mediaIdx < 0) return;
+  if (playerReady && youtubeId(p.url) && Date.now() - lastDrift > 4000) {
+    lastDrift = Date.now(); const st = player.getPlayerState();
+    if (st === YT.PlayerState.PLAYING && Math.abs(player.getCurrentTime() - el) > 2.5) player.seekTo(el, true); // 모두 같은 장면
+    if (st !== YT.PlayerState.PLAYING && Date.now() - mediaStart > 3000) $('hint').style.display = 'flex';
+  }
+  if (playerReady && youtubeId(p.url)) { const on = player.getPlayerState() === YT.PlayerState.PLAYING; if (on) $('hint').style.display = 'none'; if (on !== $('media').classList.contains('under')) setUnder(on); }
+}
+const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => new THREE.Vector3(a * SCREEN.w / 2, SCREEN.y + b * SCREEN.h / 2, SCREEN.z));
+function placeMedia() {
+  if (mediaIdx < 0) return;
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  for (const c of corners) { const v = c.clone().project(camera), x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight; x1 = Math.min(x1, x); x2 = Math.max(x2, x); y1 = Math.min(y1, y); y2 = Math.max(y2, y); }
+  Object.assign($('media').style, { left: x1 + 'px', top: y1 + 'px', width: (x2 - x1) + 'px', height: (y2 - y1) + 'px' });
+}
+
+const posterLoader = new THREE.TextureLoader(); posterLoader.setCrossOrigin('anonymous');
+function setPoster(mesh, url, fallback) { // 관리자 페이지에서 올린 그림으로 포스터 바꾸기
+  const key = url || ''; if (key && mesh.userData.url === key && mesh.material.map) return; mesh.userData.url = key;
+  const use = t => { mesh.material.map = t; mesh.material.needsUpdate = true; };
+  if (!url) return use(fallback());
+  posterLoader.load(wallSrc(url), use, undefined, () => use(fallback()));
+}
+async function loadData() {
+  try { [films, settings] = await Promise.all([DB.list('films'), DB.settings()]); films = await Portfolio.merge('films', films, settings); } catch (e) { toast('작품 목록을 못 불러왔어요'); console.error(e); }
+  phases = buildPhases(films, settings);
+  const t = settings.movie_title || '우리반 영화제';
+  applyCinemaName();
+  drawMarquee(t);
+  setPoster(posterR, settings.poster_side, () => canvasTex(300, 420, (g, W, H) => { g.fillStyle = '#ff8fab'; g.fillRect(0, 0, W, H); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `bold 44px ${FONT}`; g.fillText('오늘 상영!', W / 2, H / 2 - 10); g.font = `24px ${FONT}`; g.fillText(`${films.length}편`, W / 2, H / 2 + 40); }));
+  setPoster(posterL, settings.poster_main, () => canvasTex(300, 420, (g, W, H) => { g.fillStyle = '#6c5ce7'; g.fillRect(0, 0, W, H); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `bold 34px ${FONT}`; g.fillText(t, W / 2, H / 2, W - 20); g.font = `22px ${FONT}`; g.fillText(`${films.length}편 상영`, W / 2, H / 2 + 50); }))
+  pamKey = ''; screenKey = '';
+}
+async function refreshShow() {
+  const prev = show.idx; show = await Show.get();
+  if (show.idx === 0 && prev !== 0) await loadData(); // 시작할 때 최신 목록으로
+}
+
+// ── 입장 ──
+$('nameIn').addEventListener('keydown', e => e.key === 'Enter' && $('enterBtn').click());
+$('enterBtn').onclick = async () => {
+  const typed = $('nameIn').value.trim().slice(0, 10), teacher = typed === TEACHER_CODE, name = teacher ? TEACHER_NAME : typed;
+  if (!name) return toast('이름을 적어 주세요');
+  audio(); // 아이패드: 버튼을 누른 순간에 소리를 깨워 둬요
+  try { settings = { ...settings, ...(await DB.settings()) }; } catch {}
+  if (settings.open_cinema === 'off' && !teacher) return toast('🔒 영화관은 오픈 준비 중이에요. 조금만 기다려 주세요!', 3500);
+  if (!teacher) try { localStorage.setItem('oname', name); } catch {}
+  audio(); // 아이패드: 버튼을 눌러야 소리가 나요
+  $('enter').classList.add('hide'); $('bottom').classList.remove('hide');
+  const ch = Math.floor(Math.random() * PRESETS.length);
+  me = avatarFor(ME, ch, name, teacher);
+  const sx = (Math.random() - 0.5) * 5; place(me, sx, 12.5); me.root.rotation.y = Math.PI;
+  my = { name, ch, x: sx, z: 12.5, seat: -1, stool: -1, ticket: teacher, teacher, snacks: [], q: null, joined: Date.now() };
+  setHeld(me, heldFor(my)); if (teacher) $('pamBtn').style.display = 'block';
+  await Show.syncClock(); await loadData(); await refreshShow();
+  Show.watch(refreshShow); setInterval(() => show.idx < 0 && loadData(), 30000);
+  net = joinRoom(ME, onPeople, onEvent); track();
+  const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
+  setInterval(tickShow, 400); tickShow();
+  toast(teacher ? '👩‍🏫 강사로 입장했어요' : '🎟 매표소(왼쪽 카운터)를 누르면 자동으로 줄을 서요', 4000);
+};
+$('clapBtn').onclick = () => { if (!me) return; say(me, '👏👏👏', 2.5); me.clapT = 1.2; clapSound(); net.send({ t: 'clap', id: ME }); };
+$('standBtn').onclick = () => { if (my.seat < 0) return; const s = SEATS[my.seat]; goTo({ x: aisleX(s.x), z: -2.5 }); };
+$('pamBtn').onclick = () => $('pam').classList.toggle('on');
+
+// ── 그리기 ──
+let last = performance.now(), dim = 0, loopDoor = null;
+renderer.setAnimationLoop(t => {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  for (const av of avatars.values()) {
+    updateAvatar(av, dt);
+    if (av.eatT > 0) { av.eatT -= dt; av.arms[1].rotation.set(-2.3 + Math.sin(av.eatT * 14) * 0.25, 0, 0.35); } // 먹기
+  }
+  const dOpen = doorOpen(); for (const d of doors) { const to = dOpen ? -d.userData.s * Math.PI / 2 : 0; d.rotation.y += (to - d.rotation.y) * Math.min(1, dt * 3); }
+  if (me && dOpen !== loopDoor) { if (loopDoor === false && dOpen) toast('🚪 상영관 문이 열렸어요! 자리에 앉아요'); loopDoor = dOpen; }
+  const target = running() ? 1 : 0; dim += (target - dim) * Math.min(1, dt * 1.5); // 상영 중엔 어둡게
+  hemi.intensity = 0.95 - dim * 0.8; sun.intensity = 0.55 - dim * 0.5;
+  scene.background.setRGB(0.17 - dim * 0.13, 0.14 - dim * 0.11, 0.25 - dim * 0.2);
+  const seated = me && my.seat >= 0 && !me.path.length;
+  // 앉으면 내 눈높이에서 스크린을 봐요: 앞줄 친구들은 뒷머리만 아래쪽에 보여요
+  if (studio) { hemi.intensity = 1; sun.intensity = 0.5; }
+  if (snapping || studio) { /* 사진 카메라 유지 */ } else if (seated) { const s = SEATS[my.seat]; cam.fixed = { pos: new THREE.Vector3(s.x, 2.75, s.z + 0.2), look: new THREE.Vector3(s.x * 0.6, SCREEN.y - 0.6, SCREEN.z) }; }
+  else cam.fixed = null;
+  if (me) me.root.visible = !seated; // 내 몸·이름표는 안 보이게
+  for (const av of avatars.values()) av.tag.visible = !seated || av.id.startsWith('gp-'); // 앉으면 이름표를 숨겨 스크린을 가리지 않게
+  $('media').style.visibility = studio ? 'hidden' : '';
+  if (me) {
+    $('snapBtn').classList.toggle('hide', !(zoneAt(me.root.position) === 0 && !me.path.length && !snapping));
+    $('eatBtn').classList.toggle('hide', !(my.stool >= 0 && !me.path.length && my.snacks.length));
+  }
+  updateCamera(me ? me.root.position : { x: 0, z: 8 });
+  placeMedia();
+  renderer.render(scene, camera);
+  if (wantSnap) { const info = wantSnap; wantSnap = null; finishSnap(renderer.domElement.toDataURL('image/png'), info); } // 그린 직후라 그대로 찍혀요
+});
+</script>
+</body>
+</html>

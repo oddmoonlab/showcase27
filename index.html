@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>우리반 영화관 미술관</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 디자인은 '우리반 작업실'(2611 모바일 작업실) 첫 화면과 같게 */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f7f6f3;--surface:#ffffff;--border:#dddbd5;--text-primary:#141412;--text-secondary:#5c5b58;--text-muted:#9e9d99;--radius:14px;}
+html,body{font-family:'Inter','Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text-primary);}
+#hub{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:100vh;padding:40px 24px;}
+header{text-align:center;margin-bottom:44px;}
+.title-wrap{display:inline-block;max-width:100%;}
+.hub-logo{display:block;width:255px;max-width:100%;height:auto;margin:0 auto 16px;pointer-events:none;}
+h1{font-size:40px;font-weight:900;letter-spacing:-1.6px;line-height:1.2;}
+h1 .line2{display:inline-block;border-bottom:4px solid var(--text-primary);padding-bottom:3px;letter-spacing:.12em;padding-left:.12em;}
+.teacher{margin-top:18px;font-size:23px;font-weight:500;color:var(--text-secondary);letter-spacing:.5px;}
+.student-only-notice{display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:-20px auto 28px;padding:5px 14px;background:#fdf6dc;border:1px solid #ecd27a;border-radius:999px;color:#4a3d1a;font-size:12px;font-weight:600;line-height:1.5;text-align:left;}
+.grid{display:flex;gap:14px;justify-content:center;width:100%;max-width:820px;}
+.card{flex:1 1 0;max-width:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:26px 12px 22px;text-decoration:none;color:var(--text-primary);cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;animation:fadeCard .4s both;}
+.card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
+.card:hover,.card:focus-visible{transform:translateY(-4px);box-shadow:0 6px 22px rgba(0,0,0,.09);background:#f0eeea;border-color:#b8b6b0;outline:none;}
+.card.off{opacity:.45;pointer-events:none;}
+.card-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
+.card-icon svg{width:46px;height:46px;transition:transform .18s;}
+.card:hover .card-icon svg{transform:scale(1.05);}
+.card-label{font-size:10.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;text-align:center;}
+.card-ko{font-size:15px;font-weight:800;margin-top:-6px;}
+.card-info{font-size:11px;color:var(--text-muted);text-align:center;min-height:16px;line-height:1.4;}
+@keyframes fadeCard{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+footer{margin-top:40px;display:flex;align-items:center;gap:14px;}
+.social-link{width:38px;height:38px;border:1.5px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--surface);cursor:pointer;}
+.social-link:hover{background:#ececea;border-color:#aaa;}
+.social-link svg{width:16px;height:16px;stroke:var(--text-secondary);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.copyright-notice{margin-top:16px;font-size:10px;line-height:1.7;color:var(--text-muted);text-align:center;max-width:440px;padding:0 16px;}
+#unlock-btn{position:fixed;bottom:22px;right:22px;width:42px;height:42px;border-radius:50%;background:var(--text-primary);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,0,0,.2);z-index:100;transition:transform .15s;}
+#unlock-btn:hover{background:#3a3a38;transform:scale(1.08);}
+#unlock-btn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+#lock-badge{position:fixed;bottom:70px;right:16px;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px 8px;color:var(--text-muted);z-index:100;pointer-events:none;}
+/* 공지 (우리반 작업실의 공지와 같은 내용을 보여 줘요) */
+.top-actions{position:absolute;top:42px;right:62px;display:flex;gap:8px;z-index:50;visibility:hidden;}
+.pill-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:10px 22px;background:#141412;color:#fff;border:none;border-radius:999px;font-family:'Inter','Noto Sans KR',sans-serif;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:transform .15s;touch-action:manipulation;}
+.pill-btn:hover{transform:translateY(-2px);}
+.pill-btn.off,.pill-btn:disabled{background:#c9c7c2;color:#f4f3f0;box-shadow:none;cursor:not-allowed;pointer-events:none;}
+.pill-btn .new-dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#e8452c;border:2px solid var(--bg);display:none;}
+.pill-btn.has-new .new-dot{display:block;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(5px);z-index:200;align-items:center;justify-content:center;}
+.overlay.active{display:flex;}
+.memo-wrap{position:relative;width:min(460px,92vw);animation:popIn .22s cubic-bezier(.34,1.56,.64,1);}
+.memo-wrap::before{content:'';position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-2deg);width:110px;height:28px;background:rgba(236,210,122,.78);border-radius:2px;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.memo{position:relative;max-height:82vh;overflow-y:auto;background-color:#fffdf5;background-image:linear-gradient(90deg,transparent 40px,rgba(232,120,104,.55) 40px,rgba(232,120,104,.55) 41.5px,transparent 41.5px),repeating-linear-gradient(to bottom,transparent 0,transparent 31px,#cfdcea 31px,#cfdcea 32px);background-attachment:local;border-radius:4px 4px 14px 14px;box-shadow:0 24px 64px rgba(0,0,0,.25);padding:60px 28px 28px 56px;}
+.memo-date{position:absolute;top:22px;left:56px;font-size:11px;font-weight:600;line-height:20px;color:#9e9d99;}
+.memo-title{font-size:21px;font-weight:900;letter-spacing:-.5px;line-height:32px;word-break:keep-all;}
+.memo-body{font-size:15px;font-weight:500;line-height:32px;color:#33322f;white-space:pre-wrap;word-break:break-word;}
+.memo-empty{font-size:15px;line-height:32px;color:#9e9d99;}
+.memo-img{display:block;max-width:100%;margin:16px 0 8px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:zoom-in;}
+.memo-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:#141412;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;z-index:4;}
+#omToast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;font-size:13px;padding:10px 16px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:10000;white-space:nowrap}
+#omToast.show{opacity:1;transform:translateX(-50%)}
+@media (max-width:620px){
+  .hub-logo{width:175px;}
+  h1{font-size:28px;}
+  .grid{flex-wrap:wrap;}
+  .card{flex:1 1 calc(50% - 14px);max-width:none;}
+  .top-actions{position:static;justify-content:center;margin-bottom:22px;}
+  .pill-btn{padding:9px 18px;font-size:12px;}
+  .memo{padding:60px 20px 28px 50px;background-image:linear-gradient(90deg,transparent 36px,rgba(232,120,104,.55) 36px,rgba(232,120,104,.55) 37.5px,transparent 37.5px),repeating-linear-gradient(to bottom,transparent 0,transparent 31px,#cfdcea 31px,#cfdcea 32px);}
+  .memo-date{left:50px;}
+}
+</style>
+</head>
+<body>
+<div id="hub">
+  <div class="top-actions" id="topActions">
+    <button class="pill-btn" id="notice-btn" type="button">✦ 공지 ✦<span class="new-dot"></span></button>
+  </div>
+  <header>
+    <div class="title-wrap">
+      <img class="hub-logo" src="logo.png" alt="ODDMOON LAB">
+      <h1><span class="line2">우리반 영화관 미술관</span></h1>
+    </div>
+    <p class="teacher">유여진 강사</p>
+  </header>
+
+  <div class="student-only-notice" role="note"><span>⚠️</span><span>수강생 전용 페이지예요. 이 주소를 다른 사람에게 공유하거나 SNS·카페 등에 올리지 마세요.</span></div>
+
+  <div class="grid">
+    <a class="card off" id="card-portfolio" target="_blank" rel="noopener">
+      <div class="card-icon"><svg viewBox="0 0 48 48"><path fill="#141412" d="M4 12a3 3 0 0 1 3-3h11l4 4h19a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><rect fill="#fff" x="10" y="19" width="28" height="16" rx="2"/><circle fill="#141412" cx="17" cy="25" r="2.6"/><polygon fill="#141412" points="12,34 20,27 26,32 30,28 36,34"/></svg></div>
+      <div class="card-label">Portfolio</div><div class="card-ko">포트폴리오</div><div class="card-info" id="info-portfolio">준비 중</div>
+    </a>
+    <a class="card" id="card-gallery" href="gallery.html">
+      <div class="card-icon"><svg viewBox="0 0 48 48"><rect fill="#141412" x="4" y="6" width="40" height="32" rx="3"/><rect fill="#fff" x="9" y="11" width="30" height="22" rx="1"/><circle fill="#141412" cx="17" cy="18" r="3"/><polygon fill="#141412" points="11,31 21,21 27,27 31,23 37,31"/><rect fill="#141412" x="14" y="40" width="20" height="4" rx="2"/></svg></div>
+      <div class="card-label">Gallery</div><div class="card-ko">미술관</div><div class="card-info" id="info-gallery"></div>
+    </a>
+    <a class="card" id="card-cinema" href="cinema.html">
+      <div class="card-icon"><svg viewBox="0 0 48 48"><rect fill="#141412" x="4" y="16" width="40" height="26" rx="3"/><path fill="#141412" d="M5 13 41 5l1.4 6L6.4 19z"/><path fill="#fff" d="M11 11.6l5-1.1 3 5-5 1.1zm11-2.4 5-1.1 3 5-5 1.1z"/><polygon fill="#fff" points="20,22 31,29 20,36"/></svg></div>
+      <div class="card-label">Cinema</div><div class="card-ko">영화관</div><div class="card-info" id="info-cinema"></div>
+    </a>
+  </div>
+
+  <footer>
+    <button class="social-link" id="email-btn" title="이메일 주소 복사"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>
+  </footer>
+  <div class="copyright-notice">© 2026 ODDMOON LAB · 유여진 강사. All rights reserved.<br>본 페이지의 코드, 디자인, 이미지를 무단으로 복제·수정·재배포하는 것을 금지합니다.</div>
+
+  <a id="unlock-btn" href="admin.html" title="선생님 관리자 페이지"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></a>
+  <div id="lock-badge">TEACHER</div>
+
+  <div class="overlay" id="notice-overlay">
+    <div class="memo-wrap">
+      <button class="memo-close" id="notice-close" aria-label="닫기">✕</button>
+      <div class="memo" id="notice-memo"><div class="memo-date" id="notice-date"></div><div id="notice-content"></div></div>
+    </div>
+  </div>
+</div>
+<div id="omToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function omToast(msg) { const t = $('omToast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2000); }
+for (const [id, page] of [['card-gallery', 'gallery.html'], ['card-cinema', 'cinema.html'], ['unlock-btn', 'admin.html']]) $(id).href = page + location.search;
+$('email-btn').onclick = () => { const m = 'oddmoonillust@naver.com'; (navigator.clipboard ? navigator.clipboard.writeText(m) : Promise.reject()).then(() => omToast('✅ 이메일 주소가 복사되었습니다 — ' + m), () => omToast(m)); };
+
+// 카드 아래 한 줄 정보 + 포트폴리오 주소
+(async () => {
+  try {
+    const s = await DB.settings(), src = Portfolio.src(s);
+    const shut = k => s[k] === 'off';
+    if (src && src.site && !shut('open_portfolio')) { $('card-portfolio').href = src.site; $('card-portfolio').classList.remove('off'); $('info-portfolio').textContent = src.course || '우리반 포트폴리오'; }
+    else if (shut('open_portfolio')) $('info-portfolio').textContent = '🔒 오픈 준비 중';
+    for (const [k, id] of [['open_gallery', 'gallery'], ['open_cinema', 'cinema']]) if (shut(k)) { $('card-' + id).classList.add('off'); $('card-' + id).removeAttribute('href'); }
+    const [films, arts, show] = await Promise.all([DB.list('films').then(r => Portfolio.merge('films', r, s)), DB.list('artworks').then(r => Portfolio.merge('artworks', r, s)), Show.get()]);
+    $('info-cinema').textContent = shut('open_cinema') ? '🔒 오픈 준비 중' : `${films.length}편 · ${show.idx < 0 ? '곧 상영' : '상영 중'}`;
+    $('info-gallery').textContent = shut('open_gallery') ? '🔒 오픈 준비 중' : `작품 ${arts.length}점${(s['ribbon_' + ROOM] || '') === 'closed' ? ' · 곧 개막' : ''}`;
+  } catch (e) { console.error(e); } // 못 읽어도 문은 그대로 열려요
+})();
+
+// 공지: '우리반 작업실'과 같은 공지(class_board 표의 class-notice 줄)를 읽기만 해요. 고치는 곳은 작업실 관리 패널.
+(() => {
+  const BOARD = { url: 'https://kgjbxhxknxgbmsihvshe.supabase.co', key: 'sb_publishable_1K_wet7KC7fq7aPn6vB5dQ_nldPYACn', id: 'class-notice' };
+  const SEEN_KEY = 'oddmoon-class-notice-seen';
+  const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  let n = { is_open: true, title: '', body: '', image_url: '', updated_at: null };
+  const has = () => !!(n.title.trim() || n.body.trim() || n.image_url.trim());
+  const stamp = () => { const s = [n.title, n.body, n.image_url].join('|'); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  const isHttp = u => /^https?:\/\/\S+$/i.test((u || '').trim());
+  function toImage(u) { // 구글 드라이브·드롭박스 주소를 그림 주소로 (작업실과 같은 방식)
+    try {
+      const url = new URL(u.trim());
+      const id = /(^|\.)drive\.google\.com$/.test(url.hostname) && !url.pathname.includes('/folders/') ? ((url.pathname.match(/\/d\/([^/]+)/) || [])[1] || url.searchParams.get('id')) : null;
+      if (id) return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w1600';
+      if (/(^|\.)dropbox\.com$/.test(url.hostname)) { url.searchParams.delete('dl'); url.searchParams.set('raw', '1'); }
+      return url.toString();
+    } catch { return ''; }
+  }
+  function apply() {
+    const b = $('notice-btn');
+    b.classList.toggle('off', !n.is_open); b.disabled = !n.is_open;
+    b.classList.toggle('has-new', n.is_open && has() && ls.get(SEEN_KEY) !== stamp());
+    $('topActions').style.visibility = 'visible';
+  }
+  async function sync() {
+    try {
+      const r = await fetch(`${BOARD.url}/rest/v1/class_board?select=is_open,title,body,image_url,updated_at&id=eq.${BOARD.id}`, { headers: { apikey: BOARD.key } });
+      const row = r.ok && (await r.json())[0];
+      if (row) n = { is_open: row.is_open !== false, title: row.title || '', body: row.body || '', image_url: row.image_url || '', updated_at: row.updated_at };
+    } catch (e) { console.error(e); }
+    apply();
+  }
+  $('notice-btn').onclick = () => {
+    if (!n.is_open) return;
+    let html = '';
+    if (!has()) html = '<div class="memo-title">공지</div><div class="memo-empty">아직 올라온 공지가 없어요.</div>';
+    else {
+      if (n.title.trim()) html += `<div class="memo-title">${esc(n.title)}</div>`;
+      if (n.body.trim()) html += `<div class="memo-body">${esc(n.body.replace(/\s+$/, ''))}</div>`;
+      const img = isHttp(n.image_url) ? toImage(n.image_url) : '';
+      if (img) html += `<img class="memo-img" id="notice-img" src="${esc(img)}" alt="공지 이미지" referrerpolicy="no-referrer">`;
+    }
+    $('notice-content').innerHTML = html;
+    const d = new Date(n.updated_at);
+    $('notice-date').textContent = has() && !isNaN(d) ? `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]}) 업데이트` : '';
+    const im = $('notice-img');
+    if (im) {
+      im.onerror = () => { const x = document.createElement('div'); x.className = 'memo-empty'; x.textContent = '이미지를 불러올 수 없어요.'; im.replaceWith(x); };
+      im.onclick = () => window.open(im.src, '_blank', 'noopener');
+    }
+    if (has()) ls.set(SEEN_KEY, stamp());
+    apply(); $('notice-memo').scrollTop = 0; $('notice-overlay').classList.add('active');
+  };
+  const close = () => $('notice-overlay').classList.remove('active');
+  $('notice-close').onclick = close;
+  $('notice-overlay').onclick = e => { if (e.target.id === 'notice-overlay') close(); };
+  document.addEventListener('keydown', e => e.key === 'Escape' && close());
+  sync(); setInterval(sync, 30000);
+})();
+</script>
+</body>
+</html>

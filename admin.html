@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 · 우리반 영화관·미술관</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f6f1e7; color:#2b2440; font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:24px 16px 80px; }
+  h1 { margin:0 0 4px; } h2 { margin:0 0 12px; font-size:19px; }
+  .note { color:#7a6f60; font-size:14px; margin:0 0 18px; }
+  section { background:#fff; border-radius:16px; padding:18px; margin-bottom:18px; box-shadow:0 2px 0 #e6dccb; }
+  input, select { font:inherit; border:1.5px solid #ddd2bf; border-radius:10px; padding:8px 10px; width:100%; min-width:0; }
+  button { font:inherit; font-weight:700; border:0; border-radius:10px; padding:8px 14px; background:#efe6d6; cursor:pointer; white-space:nowrap; }
+  button.main { background:#ff8fab; color:#fff; } button.danger { background:#ffe1e1; color:#b3261e; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:13px; color:#7a6f60; padding:6px; }
+  td { padding:5px 6px; border-top:1px solid #f0e8da; vertical-align:middle; }
+  td.n { width:36px; font-weight:700; text-align:center; } td.ord { width:76px; } td.act { width:140px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .row > * { flex:1; }
+  .row > button { flex:0 0 auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; align-items:end; }
+  label { font-size:13px; color:#7a6f60; display:block; }
+  #msg { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#2b2440; color:#fff; padding:10px 16px; border-radius:10px; display:none; }
+  .hide { display:none; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎬 관리자 페이지</h1>
+  <p class="note" id="mode"></p>
+
+  <section id="login" class="hide">
+    <h2>관리자 로그인</h2>
+    <div class="row"><input id="email" placeholder="관리자 아이디(이메일)" autocomplete="username"><input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password"><button class="main" id="loginBtn">들어가기</button></div>
+  </section>
+
+  <div id="admin" class="hide">
+    <section>
+      <h2>입장 열고 닫기</h2>
+      <p class="note">끄면 첫 화면(입장관)의 카드가 "오픈 준비 중"으로 바뀌고 들어갈 수 없어요. 켜면 바로 들어올 수 있어요. 강사(이름 0530)는 꺼져 있어도 미리 들어가 볼 수 있어요.</p>
+      <div id="openRows"></div>
+    </section>
+    <section>
+      <h2>상영 설정</h2>
+      <div class="grid">
+        <div><label>영화관 이름 (표·간판·매표소 인사·팜플렛. 비워 두면 "우리반 영화관")</label><input id="s_cinema_name" maxlength="20" placeholder="우리반 영화관"></div>
+        <div><label>영화 제목 (스크린에 처음 뜨는 제목)</label><input id="s_movie_title" placeholder="우리반 영화제"></div>
+        <div><label>광고 영상 주소 (비워 두면 광고 없이)</label><input id="s_ad_url" placeholder="https://youtu.be/..."></div>
+        <div><label>광고 길이(초) — 유튜브면 비워도 돼요</label><input id="s_ad_seconds" inputmode="numeric"></div>
+        <div><button class="main" id="saveSettings">저장</button></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>상영 목록 (영화관)</h2>
+      <p class="note">유튜브·쇼츠는 끝나면 자동으로 다음 편으로 넘어가요. <b>인스타 릴스는 길이(초)를 꼭 적어 주세요</b> (안 적으면 60초).</p>
+      <div class="scroll"><table id="films"></table></div>
+    </section>
+
+    <section>
+      <h2>상영 조작</h2>
+      <div class="row">
+        <div><label>방 이름 (주소 끝 ?room= 뒤의 글자. 없으면 main)</label><input id="room" value="main"></div>
+        <button id="resetShow">상영 전으로 (모두 앉으면 시작)</button>
+        <button class="main" id="startShow">지금 처음부터 시작</button>
+      </div>
+      <p class="note" id="showState" style="margin:10px 0 0"></p>
+      <h2 style="margin-top:18px">상영관 문</h2>
+      <p class="note">문이 닫혀 있으면 관객은 로비에서 기다려요. "지금 처음부터 시작"을 누르면 문도 저절로 열려요.</p>
+      <div class="row">
+        <button id="doorClose">🚪 문 닫아 두기</button>
+        <button class="main" id="doorOpen">🚪 지금 문 열기</button>
+        <div><label>이 시각에 자동으로 열기</label><input type="datetime-local" id="doorAt"></div>
+        <button id="doorAtBtn">시각 저장</button>
+      </div>
+      <p class="note" id="doorState" style="margin:10px 0 0"></p>
+      <h2 style="margin-top:18px">영화관 포스터</h2>
+      <p class="note">큰 포스터는 로비 왼쪽 벽에 크게 걸리고 단체사진 배경이 돼요. '오늘 상영!' 포스터는 오른쪽 포토존에 걸려요. 비워 두면 글자 포스터가 나와요.</p>
+      <div class="row">
+        <div><label>큰 포스터 (우리반 영화제)</label><input type="file" id="posterMain" accept="image/*"></div>
+        <button id="posterMainDel">지우기</button>
+        <div><label>'오늘 상영!' 포스터</label><input type="file" id="posterSide" accept="image/*"></div>
+        <button id="posterSideDel">지우기</button>
+      </div>
+      <p class="note" id="posterState" style="margin:10px 0 0"></p>
+    </section>
+
+    <section>
+      <h2>미술관 작품</h2>
+      <p class="note">그림 주소는 인터넷에 올린 이미지 주소예요(주소를 열면 그림만 보이는 것). 크기: 큰 그림은 벽 가운데에 크게 걸려요.</p>
+      <div class="grid" style="margin-bottom:12px">
+        <div><label>미술관 배경 음악 주소 (mp3 주소. 비워 두면 기본 잔잔한 음악)</label><input id="s_gallery_music"></div>
+        <div><button class="main" id="saveMusic">저장</button></div>
+      </div>
+      <div class="row" style="margin-bottom:10px"><div style="flex:1"><label>미술관 이름 (관람 티켓·입구 간판·리셉션 인사에 나와요. 비워 두면 "우리반 미술관")</label><input id="s_gallery_name" maxlength="20"></div><button class="main" id="saveGname">저장</button></div>
+      <div class="row" style="margin-bottom:10px"><div><label>미술관 포토존 그림 (로비 오른쪽 포토존 배경. 비워 두면 기본 그림)</label><input type="file" id="photoBg" accept="image/*"></div><button id="photoBgDel">지우기</button><span class="note" id="photoBgState"></span></div>
+      <div class="row" style="margin-bottom:10px"><div><label>그림 파일 올리기 (추천 · 올리면 주소가 맨 아래 새 줄에 들어가요. 다른 사이트 주소는 3D 벽에 안 걸릴 수 있어요)</label><input type="file" id="upFile" accept="image/*"></div></div>
+      <div class="scroll"><table id="artworks"></table></div>
+    </section>
+    <section>
+      <h2>학생 포트폴리오에서 자동으로 들어오는 작품</h2>
+      <p class="note">이번 수업의 포트폴리오 사이트 주소를 넣으면, 학생이 거기 넣은 애니메이션은 영화관에, 이모티콘·스톡이미지는 미술관에 자동으로 나와요(위 표의 작품 다음, 학생 번호 순). 방 이름(위 "상영 조작")마다 다른 포트폴리오를 연결할 수 있어요. 보여 주기 싫은 것은 "빼기". 순서를 직접 정하려면 위 표에 같은 주소로 넣으면 그 자리에 나와요.</p>
+      <div class="row" style="margin-bottom:8px">
+        <div style="flex:1"><label>포트폴리오 사이트 주소</label><input id="pfSite" placeholder="https://....netlify.app"></div>
+        <button class="main" id="pfLink">연결</button><button id="pfUnlink">연결 끊기</button>
+      </div>
+      <div class="row" style="margin-bottom:8px"><div><label>주소로 연결이 안 되면: 포트폴리오 사이트의 index.html 파일을 골라 주세요 (같은 효과)</label><input type="file" id="pfFile" accept=".html,text/html"></div></div>
+      <p class="note" id="pfState" style="margin:0 0 10px"></p>
+      <div class="row" style="margin-bottom:10px"><b style="flex:1" id="pfCount"></b><button id="pfReload">새로고침</button></div>
+      <div class="scroll"><table id="pf"></table></div>
+    </section>
+    <section>
+      <h2>미술관 개막식 · 방명록</h2>
+      <p class="note">방 이름은 위 "상영 조작"의 방 이름을 따라요. 리본을 걸면 관객은 입구 로비에서 기다리고, 커팅하면 모두의 화면에 꽃가루가 날리며 전시가 열려요.</p>
+      <div class="row" style="margin-bottom:12px">
+        <button id="ribbonOn">🎀 리본 걸기 (개막 준비)</button>
+        <button class="main" id="ribbonCut">✂️ 테이프 커팅!</button>
+        <button id="ribbonOff">리본 없이 열어 두기</button>
+      </div>
+      <p class="note" id="ribbonState"></p>
+      <div class="row"><b style="flex:1">방명록</b><button id="gbReload">새로고침</button></div>
+      <div class="scroll"><table id="gb"></table></div>
+    </section>
+    <div class="row"><button id="logout" class="hide">로그아웃</button></div>
+  </div>
+</main>
+<div id="msg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const msg = t => { $('msg').textContent = t; $('msg').style.display = 'block'; clearTimeout(msg.h); msg.h = setTimeout(() => $('msg').style.display = 'none', 2500); };
+const safe = fn => async (...a) => { try { await fn(...a); } catch (e) { console.error(e); msg('저장 안 됨: ' + (e.message || e)); } };
+$('mode').textContent = ONLINE ? '여기서 고친 내용은 영화관·미술관에 바로 반영돼요 (영화관은 다음 상영부터).' : '⚠️ 혼자 테스트 모드: 이 브라우저에만 저장돼요. common.js 에 Supabase 두 줄을 넣으면 진짜로 저장돼요.';
+
+const TABLES = {
+  films: { cols: [['student', '학생 이름(본명)'], ['title', '작품 제목'], ['url', '영상 주소 (유튜브·쇼츠·릴스)'], ['seconds', '길이(초)']], need: ['student', 'url'] },
+  artworks: { cols: [['artist', '작가 이름'], ['title', '작품 제목'], ['image_url', '그림 주소'], ['size', '크기']], need: ['artist', 'image_url'] },
+};
+const cell = (t, c, v) => c === 'size'
+  ? `<select data-c="size">${['큰', '보통', '작은'].map(s => `<option ${s === (v || '보통') ? 'selected' : ''}>${s}</option>`).join('')}</select>`
+  : `<input data-c="${c}" value="${esc(v ?? '')}" ${c === 'seconds' ? 'inputmode="numeric" style="width:80px"' : ''}>`;
+function readRow(tr) {
+  const o = {}; tr.querySelectorAll('[data-c]').forEach(i => o[i.dataset.c] = i.value.trim());
+  if ('seconds' in o) o.seconds = o.seconds ? parseInt(o.seconds, 10) || null : null;
+  return o;
+}
+async function render(t) {
+  const rows = await DB.list(t), cfg = TABLES[t], el = $(t);
+  el.innerHTML = `<tr><th>#</th><th>순서</th>${cfg.cols.map(c => `<th>${c[1]}</th>`).join('')}<th></th></tr>` +
+    rows.map((r, i) => `<tr data-id="${r.id}"><td class="n">${i + 1}</td><td class="ord"><button data-mv="-1">▲</button> <button data-mv="1">▼</button></td>${cfg.cols.map(c => `<td>${cell(t, c[0], r[c[0]])}</td>`).join('')}<td class="act"><button data-save>수정 저장</button> <button class="danger" data-del>삭제</button></td></tr>`).join('') +
+    `<tr class="new"><td class="n">+</td><td></td>${cfg.cols.map(c => `<td>${cell(t, c[0], '')}</td>`).join('')}<td class="act"><button class="main" data-add>추가</button></td></tr>`;
+  el.querySelectorAll('[data-mv]').forEach(b => b.onclick = safe(async () => {
+    const i = [...el.querySelectorAll('tr[data-id]')].indexOf(b.closest('tr')), j = i + +b.dataset.mv;
+    if (j < 0 || j >= rows.length) return;
+    [rows[i], rows[j]] = [rows[j], rows[i]];
+    await Promise.all(rows.map((r, k) => r.ord !== k ? DB.update(t, r.id, { ord: k }) : null)); // 순서 번호를 0,1,2…로 다시 매김
+    render(t);
+  }));
+  el.querySelectorAll('[data-save]').forEach(b => b.onclick = safe(async () => {
+    const tr = b.closest('tr'), o = readRow(tr);
+    if (cfg.need.some(k => !o[k])) return msg('이름과 주소는 꼭 적어 주세요');
+    await DB.update(t, +tr.dataset.id, o); msg('저장했어요'); render(t);
+  }));
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = safe(async () => {
+    const tr = b.closest('tr'); if (!confirm('이 줄을 지울까요? 되돌릴 수 없어요.')) return;
+    await DB.remove(t, +tr.dataset.id); msg('지웠어요'); render(t);
+  }));
+  el.querySelector('[data-add]').onclick = safe(async () => {
+    const o = readRow(el.querySelector('tr.new'));
+    if (cfg.need.some(k => !o[k])) return msg('이름과 주소는 꼭 적어 주세요');
+    await DB.insert(t, { ...o, ord: rows.length ? Math.max(...rows.map(r => r.ord)) + 1 : 0 }); msg('추가했어요'); render(t);
+  });
+}
+async function loadAll() {
+  const s = await DB.settings();
+  for (const k of ['cinema_name', 'movie_title', 'ad_url', 'ad_seconds', 'gallery_music', 'gallery_name']) $('s_' + k).value = s[k] || '';
+  await Promise.all([render('films'), render('artworks')]);
+  showState(); ribbonView(); renderGb(); renderPf(); doorView(); posterView(); renderOpen();
+}
+$('saveSettings').onclick = safe(async () => { await DB.saveSettings({ cinema_name: $('s_cinema_name').value.trim(), movie_title: $('s_movie_title').value.trim(), ad_url: $('s_ad_url').value.trim(), ad_seconds: $('s_ad_seconds').value.trim() }); msg('저장했어요'); });
+$('saveGname').onclick = safe(async () => { await DB.saveSettings({ gallery_name: $('s_gallery_name').value.trim() }); msg('미술관 이름을 저장했어요 (미술관은 다시 들어오면 바뀌어요)'); });
+$('saveMusic').onclick = safe(async () => { await DB.saveSettings({ gallery_music: $('s_gallery_music').value.trim() }); msg('저장했어요'); });
+const room = () => ($('room').value.trim().replace(/[^\w가-힣-]/g, '') || 'main').slice(0, 20);
+async function showState() { const s = await Show.get(room()); $('showState').textContent = s.idx < 0 ? `'${room()}' 방: 상영 전 (모두 앉으면 시작)` : `'${room()}' 방: ${s.idx + 1}번째 순서 진행 중 (${new Date(s.at).toLocaleTimeString('ko-KR')} 시작)`; }
+$('upFile').onchange = safe(async () => {
+  const f = $('upFile').files[0]; if (!f) return;
+  if (f.size > 8e6) return msg('8MB보다 작은 그림으로 올려 주세요');
+  let url;
+  if (ONLINE) {
+    const path = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + (f.name.split('.').pop() || 'png').toLowerCase();
+    const { error } = await sb.storage.from('art').upload(path, f, { contentType: f.type });
+    if (error) throw error;
+    url = sb.storage.from('art').getPublicUrl(path).data.publicUrl;
+  } else url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }); // 테스트 모드: 이 브라우저에만
+  document.querySelector('#artworks tr.new [data-c=image_url]').value = url;
+  $('upFile').value = ''; msg('올렸어요! 작가 이름을 적고 추가를 누르세요');
+});
+$('room').onchange = () => { showState(); ribbonView(); renderGb(); renderPf(); doorView(); };
+async function ribbonView() {
+  const v = (await DB.settings())['ribbon_' + room()] || '';
+  $('ribbonState').textContent = `'${room()}' 방 미술관: ` + (v === 'closed' ? '🎀 리본이 걸려 있어요 (개막 전)' : v.startsWith('open:') ? '✂️ 커팅 완료, 열려 있어요' : '리본 없이 열려 있어요');
+}
+const setRibbon = v => safe(async () => { await DB.saveSettings({ ['ribbon_' + room()]: v() }); msg('바꿨어요'); ribbonView(); });
+$('ribbonOn').onclick = setRibbon(() => 'closed');
+$('ribbonCut').onclick = setRibbon(() => 'open:' + Date.now());
+$('ribbonOff').onclick = setRibbon(() => '');
+// 입장 열고 닫기: 포트폴리오 링크 · 미술관 · 영화관 (설정 open_portfolio / open_gallery / open_cinema 가 'off' 이면 닫힘)
+const OPEN_ITEMS = [['open_portfolio', '📁 포트폴리오 링크', '입장관의 포트폴리오 카드가 아래 "학생 포트폴리오"에 연결한 주소로 열려요'], ['open_gallery', '🖼 미술관', ''], ['open_cinema', '🎬 영화관', '']];
+async function renderOpen() {
+  const s = await DB.settings(), src = Portfolio.src(s, 'main');
+  $('openRows').innerHTML = OPEN_ITEMS.map(([k, label, note]) => {
+    const on = s[k] !== 'off', noSite = k === 'open_portfolio' && !(src && src.site);
+    return `<div class="row" style="margin-bottom:8px;align-items:center"><b style="min-width:150px">${label}</b><span style="flex:1" class="note">${on ? '🟢 열려 있어요' : '🔒 닫혀 있어요 (오픈 준비 중)'}${noSite ? ' · ⚠️ 포트폴리오 주소를 아직 연결하지 않았어요' : ''}${note ? '<br>' + note : ''}</span><button data-open="${k}" class="${on ? 'danger' : 'main'}">${on ? '끄기' : '켜기'}</button></div>`;
+  }).join('');
+  $('openRows').querySelectorAll('[data-open]').forEach(b => b.onclick = safe(async () => {
+    const k = b.dataset.open, cur = (await DB.settings())[k] !== 'off';
+    await DB.saveSettings({ [k]: cur ? 'off' : 'on' }); msg(cur ? '닫았어요 (오픈 준비 중)' : '열었어요'); renderOpen();
+  }));
+}
+async function renderPf() {
+  const s = await DB.settings(), src = Portfolio.src(s, room());
+  $('pfSite').value = (src && src.site) || '';
+  $('pfState').textContent = src ? `'${room()}' 방 ↔ ${src.course || '포트폴리오'} (저장 칸: ${src.prefix || '기본'})` : `'${room()}' 방: 아직 연결한 포트폴리오가 없어요`;
+  let p; try { p = await Portfolio.load(src); } catch (e) { console.error(e); $('pf').innerHTML = '<tr><td>포트폴리오를 못 불러왔어요 (인터넷 연결 확인)</td></tr>'; return; }
+  const hidden = new Set((s.portfolio_hidden || '').split('\n').filter(Boolean));
+  const rows = [...p.films.map(f => ['🎬 영화관', f.student, f.title, f.url]), ...p.artworks.map(a => ['🖼 미술관', a.artist, a.title, a.image_url])];
+  $('pfCount').textContent = `영상 ${p.films.length}편 · 그림 ${p.artworks.length}점`;
+  $('pf').innerHTML = rows.length ? rows.map(([w, who, t, u]) => `<tr style="${hidden.has(pfKey(u)) ? 'opacity:.45' : ''}"><td style="width:90px">${w}</td><td style="width:100px"><b>${esc(who)}</b></td><td>${esc(t || '제목 없음')}</td><td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${u.startsWith('data:') ? '(올린 그림)' : esc(u)}</td><td style="width:90px"><button data-pf="${esc(pfKey(u))}" class="${hidden.has(pfKey(u)) ? 'main' : 'danger'}">${hidden.has(pfKey(u)) ? '다시 넣기' : '빼기'}</button></td></tr>`).join('') : '<tr><td>아직 학생들이 넣은 작품이 없어요</td></tr>';
+  $('pf').querySelectorAll('[data-pf]').forEach(b => b.onclick = safe(async () => {
+    const h = new Set(((await DB.settings()).portfolio_hidden || '').split('\n').filter(Boolean)), u = b.dataset.pf;
+    h.has(u) ? h.delete(u) : h.add(u);
+    await DB.saveSettings({ portfolio_hidden: [...h].join('\n') }); msg('바꿨어요'); renderPf();
+  }));
+}
+$('pfReload').onclick = safe(renderPf);
+async function savePf(src) {
+  const p = await Portfolio.load(src); // 진짜로 읽히는지 먼저 확인
+  await DB.saveSettings({ ['portfolio_' + room()]: JSON.stringify(src) });
+  renderOpen(); msg(`연결했어요! 학생 ${p.names.filter(n => n.trim()).length}명 · 영상 ${p.films.length}편 · 그림 ${p.artworks.length}점`); renderPf();
+}
+$('pfLink').onclick = safe(async () => {
+  let site = $('pfSite').value.trim(); if (!site) return msg('포트폴리오 사이트 주소를 넣어 주세요');
+  if (!/^https?:\/\//.test(site)) site = 'https://' + site;
+  let src; try { src = await Portfolio.fromSite(site); } catch (e) { console.error(e); return msg('주소로는 못 읽었어요. 아래에서 index.html 파일을 골라 주세요'); }
+  await savePf(src);
+});
+$('pfFile').onchange = safe(async () => {
+  const f = $('pfFile').files[0]; if (!f) return; $('pfFile').value = '';
+  await savePf(Portfolio.parse(await f.text(), $('pfSite').value.trim()));
+});
+$('pfUnlink').onclick = safe(async () => {
+  if (!confirm(`'${room()}' 방의 포트폴리오 연결을 끊을까요? (학생 자료는 지워지지 않아요)`)) return;
+  await DB.saveSettings({ ['portfolio_' + room()]: '' }); msg('연결을 끊었어요'); renderPf();
+});
+async function renderGb() {
+  const rows = await Guestbook.list(room());
+  $('gb').innerHTML = rows.length ? rows.map(r => `<tr><td style="width:110px"><b>${esc(r.name)}</b></td><td>${esc(r.text)}</td><td style="width:150px;font-size:12px;color:#7a6f60">${new Date(r.created_at).toLocaleString('ko-KR')}</td><td style="width:70px"><button class="danger" data-gb="${r.id}">지우기</button></td></tr>`).join('') : '<tr><td>아직 남긴 글이 없어요</td></tr>';
+  $('gb').querySelectorAll('[data-gb]').forEach(b => b.onclick = safe(async () => { if (!confirm('이 글을 지울까요? 되돌릴 수 없어요.')) return; await Guestbook.remove(+b.dataset.gb, room()); msg('지웠어요'); renderGb(); }));
+}
+$('gbReload').onclick = safe(renderGb);
+$('resetShow').onclick = safe(async () => { await Show.set(room(), -1); msg('상영 전으로 돌렸어요'); showState(); });
+$('startShow').onclick = safe(async () => { await Show.syncClock(); await Show.set(room(), 0); await DB.saveSettings({ ['door_' + room()]: 'open' }); msg('상영을 시작했어요 (문도 열었어요)'); showState(); doorView(); });
+// 상영관 문
+async function doorView() {
+  const v = (await DB.settings())['door_' + room()] || '';
+  $('doorState').textContent = `'${room()}' 방 상영관 문: ` + (v === 'closed' ? '🔒 닫혀 있어요' : v.startsWith('at:') ? `⏰ ${new Date(+v.slice(3)).toLocaleString('ko-KR')}에 열려요` : '🔓 열려 있어요');
+}
+const setDoor = v => safe(async () => { await DB.saveSettings({ ['door_' + room()]: v() }); msg('바꿨어요'); doorView(); });
+$('doorClose').onclick = setDoor(() => 'closed');
+$('doorOpen').onclick = setDoor(() => 'open');
+$('doorAtBtn').onclick = safe(async () => {
+  const t = new Date($('doorAt').value).getTime(); if (!t) return msg('열 시각을 골라 주세요');
+  await DB.saveSettings({ ['door_' + room()]: 'at:' + t }); msg('저장했어요'); doorView();
+});
+// 영화관 포스터 (그림 파일 올리기)
+async function uploadImage(f) {
+  if (f.size > 8e6) throw new Error('8MB보다 작은 그림으로 올려 주세요');
+  if (!ONLINE) return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }); // 테스트 모드: 이 브라우저에만
+  const path = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + (f.name.split('.').pop() || 'png').toLowerCase();
+  const { error } = await sb.storage.from('art').upload(path, f, { contentType: f.type });
+  if (error) throw error;
+  return sb.storage.from('art').getPublicUrl(path).data.publicUrl;
+}
+async function posterView() { const s = await DB.settings(); $('photoBgState').textContent = s.gallery_photo_bg ? '✅ 올렸어요' : '기본 그림'; $('posterState').textContent = `큰 포스터: ${s.poster_main ? '✅ 올렸어요' : '글자 포스터'} · '오늘 상영!' 포스터: ${s.poster_side ? '✅ 올렸어요' : '글자 포스터'} (영화관은 30초 안에 바뀌어요)`; }
+for (const [id, key] of [['posterMain', 'poster_main'], ['posterSide', 'poster_side'], ['photoBg', 'gallery_photo_bg']]) {
+  $(id).onchange = safe(async () => { const f = $(id).files[0]; if (!f) return; const url = await uploadImage(f); $(id).value = ''; await DB.saveSettings({ [key]: url }); msg('포스터를 바꿨어요'); posterView(); });
+  $(id + 'Del').onclick = safe(async () => { await DB.saveSettings({ [key]: '' }); msg('글자 포스터로 돌렸어요'); posterView(); });
+}
+
+async function boot() {
+  if (!ONLINE) { $('admin').classList.remove('hide'); return loadAll(); }
+  const { data } = await sb.auth.getSession();
+  if (data.session) { $('admin').classList.remove('hide'); $('logout').classList.remove('hide'); return loadAll(); }
+  $('login').classList.remove('hide');
+}
+$('loginBtn').onclick = safe(async () => {
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value });
+  if (error) return msg('아이디나 비밀번호가 맞지 않아요');
+  $('login').classList.add('hide'); boot();
+});
+$('pw').addEventListener('keydown', e => e.key === 'Enter' && $('loginBtn').click());
+$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+boot();
+</script>
+</body>
+</html>
