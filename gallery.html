@@ -83,7 +83,7 @@
 <script src="world.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-$('enterNote').textContent = (ONLINE ? '' : '혼자 테스트 모드 · ') + '방: ' + ROOM;
+$('enterNote').textContent = (ONLINE ? '' : '혼자 테스트 모드 · ') + (ROOM === 'main' ? '' : '방: ' + ROOM);
 $('toCinema').href = 'cinema.html' + location.search; $('toHome').href = './' + location.search;
 try { $('nameIn').value = localStorage.getItem('oname') || ''; } catch {}
 scene.background = new THREE.Color(0xf3eee6);

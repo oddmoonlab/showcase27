@@ -91,9 +91,9 @@
 const $ = id => document.getElementById(id);
 $('toGallery').href = 'gallery.html' + location.search; $('toHome').href = './' + location.search;
 const cinemaName = () => { let n = ''; try { n = settings.cinema_name || ''; } catch {} return n.trim() || '우리반 영화관'; }; // settings 가 아직 없을 때(처음 그릴 때)도 괜찮게
-function applyCinemaName() { document.title = cinemaName(); document.querySelector('#enter h1').textContent = '🎬 ' + cinemaName(); drawNumSign(); if (!me) $('enterNote').textContent = settings.open_cinema === 'off' ? '🔒 오픈 준비 중이에요. 선생님이 열면 들어올 수 있어요.' : (ONLINE ? '' : '혼자 테스트 모드 · ') + '방: ' + ROOM; }
+function applyCinemaName() { document.title = cinemaName(); document.querySelector('#enter h1').textContent = '🎬 ' + cinemaName(); drawNumSign(); if (!me) $('enterNote').textContent = settings.open_cinema === 'off' ? '🔒 오픈 준비 중이에요. 선생님이 열면 들어올 수 있어요.' : (ONLINE ? '' : '혼자 테스트 모드 · ') + (ROOM === 'main' ? '' : '방: ' + ROOM); }
 DB.settings().then(v => { settings = { ...settings, ...v }; applyCinemaName(); }).catch(() => {}); // 들어오기 전에도 이름이 보이게
-$('enterNote').textContent = (ONLINE ? '' : '혼자 테스트 모드 · ') + '방: ' + ROOM;
+$('enterNote').textContent = (ONLINE ? '' : '혼자 테스트 모드 · ') + (ROOM === 'main' ? '' : '방: ' + ROOM);
 try { $('nameIn').value = localStorage.getItem('oname') || ''; } catch {}
 
 // ── 공간 만들기 ──
